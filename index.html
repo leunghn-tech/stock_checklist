@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>M.E.T.S. 股票交易檢討系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // M.E.T.S Checklist Template based on user's CSV
+        const METS_CHECKLIST = [
+            {
+                category: "大盤指數 (Market)",
+                items: [
+                    { id: "m_trend", label: "大盤指數趨勢", options: [
+                        { text: "強勢上升", edge: "long" },
+                        { text: "弱勢上升", edge: "long" },
+                        { text: "盤整區間", edge: "neutral" },
+                        { text: "下跌趨勢", edge: "short" }
+                    ]},
+                    { id: "m_dist", label: "大盤出貨日 (Distribution Days)", options: [
+                        { text: "無 / 很少", edge: "long" },
+                        { text: "有顯著出貨日", edge: "short" }
+                    ]},
+                    { id: "m_anom", label: "突兀走勢 / 異動", options: [
+                        { text: "無明顯異常", edge: "neutral" },
+                        { text: "出現突兀下跌", edge: "short" }
+                    ]}
+                ]
+            },
+            {
+                category: "所屬板塊 (Sector)",
+                items: [
+                    { id: "e_rs", label: "板塊相對強度 (RS)", options: [
+                        { text: "強於大盤", edge: "long" },
+                        { text: "與大盤同步", edge: "neutral" },
+                        { text: "弱於大盤", edge: "short" }
+                    ]},
+                    { id: "e_trend", label: "所屬板塊趨勢", options: [
+                        { text: "上升趨勢", edge: "long" },
+                        { text: "盤整或下跌", edge: "short" }
+                    ]}
+                ]
+            },
+            {
+                category: "個股趨勢 (Trend)",
+                items: [
+                    { id: "t_rs", label: "個股相對強度 (RS Rating)", options: [
+                        { text: "高於 80", edge: "long" },
+                        { text: "50 - 80", edge: "neutral" },
+                        { text: "低於 50", edge: "short" }
+                    ]},
+                    { id: "t_mid_trend", label: "中/短期趨勢", options: [
+                        { text: "上升趨勢", edge: "long" },
+                        { text: "盤整", edge: "neutral" },
+                        { text: "下跌趨勢", edge: "short" }
+                    ]}
+                ]
+            },
+            {
+                category: "交易型態與支持 (Structure/Support)",
+                items: [
+                    { id: "s_support", label: "靠近重要支持位 (MA, 趨勢線)", options: [
+                        { text: "是，距離很近", edge: "long" },
+                        { text: "否，距離較遠", edge: "neutral" },
+                        { text: "已跌破支持", edge: "short" }
+                    ]},
+                    { id: "s_vol_up", label: "上升時成交量 (如突破)", options: [
+                        { text: "帶量上漲 (>50 MA)", edge: "long" },
+                        { text: "量能不足", edge: "short" }
+                    ]},
+                    { id: "s_vol_down", label: "拉回時成交量", options: [
+                        { text: "低量拉回 (惜售)", edge: "long" },
+                        { text: "帶量下跌 (洗盤/派發)", edge: "short" }
+                    ]}
+                ]
+            }
+        ];
+
+        // Icons
+        const Icons = {
+            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+            ArrowLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>,
+            CheckCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>,
+            TrendingUp: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>,
+        };
+
+        function App() {
+            // State: view = 'dashboard' | 'new_trade' | 'review_trade' | 'report'
+            const [view, setView] = useState('dashboard');
+            const [trades, setTrades] = useState([]);
+            const [currentTrade, setCurrentTrade] = useState(null);
+
+            // Navigate Helper
+            const goTo = (viewName, trade = null) => {
+                setCurrentTrade(trade);
+                setView(viewName);
+            };
+
+            // Calculate overall edges for a given answers object
+            const calculateEdges = (answers) => {
+                let long = 0; let short = 0;
+                METS_CHECKLIST.forEach(cat => {
+                    cat.items.forEach(item => {
+                        const ans = answers[item.id];
+                        if (ans) {
+                            if (ans.edge === 'long') long++;
+                            if (ans.edge === 'short') short++;
+                        }
+                    });
+                });
+                return { long, short };
+            };
+
+            const saveNewTrade = (tradeData) => {
+                const newTrade = {
+                    ...tradeData,
+                    id: Date.now().toString(),
+                    status: 'active', // active or completed
+                };
+                setTrades([newTrade, ...trades]);
+                goTo('dashboard');
+            };
+
+            const completeTrade = (tradeId, reviewData) => {
+                setTrades(trades.map(t => {
+                    if (t.id === tradeId) {
+                        return { ...t, ...reviewData, status: 'completed' };
+                    }
+                    return t;
+                }));
+                goTo('dashboard');
+            };
+
+            return (
+                <div className="w-full max-w-md mx-auto min-h-screen bg-gray-50 flex flex-col relative shadow-xl">
+                    {view === 'dashboard' && <Dashboard trades={trades} onNew={() => goTo('new_trade')} onSelect={(t) => t.status === 'completed' ? goTo('report', t) : goTo('review_trade', t)} />}
+                    {view === 'new_trade' && <NewTradeForm onSave={saveNewTrade} onCancel={() => goTo('dashboard')} calculateEdges={calculateEdges} />}
+                    {view === 'review_trade' && <ReviewTradeForm trade={currentTrade} onSave={(data) => completeTrade(currentTrade.id, data)} onCancel={() => goTo('dashboard')} />}
+                    {view === 'report' && <ReportView trade={currentTrade} onBack={() => goTo('dashboard')} />}
+                </div>
+            );
+        }
+
+        // --- DASHBOARD COMPONENT ---
+        function Dashboard({ trades, onNew, onSelect }) {
+            const activeTrades = trades.filter(t => t.status === 'active');
+            const completedTrades = trades.filter(t => t.status === 'completed');
+
+            return (
+                <div className="flex flex-col h-full">
+                    <header className="bg-blue-600 text-white p-5 rounded-b-3xl shadow-md">
+                        <h1 className="text-2xl font-bold mb-1">M.E.T.S. 系統</h1>
+                        <p className="text-blue-100 text-sm">股票檢討與核對清單</p>
+                    </header>
+                    
+                    <main className="flex-1 overflow-y-auto p-4 space-y-6">
+                        {/* Active Trades */}
+                        <section>
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">持有中 / 待檢討 ({activeTrades.length})</h2>
+                            {activeTrades.length === 0 ? (
+                                <p className="text-gray-400 text-sm italic">目前沒有進行中的交易計畫。</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {activeTrades.map(t => (
+                                        <div key={t.id} onClick={() => onSelect(t)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-95 transition-transform cursor-pointer">
+                                            <div>
+                                                <div className="font-bold text-lg text-gray-800">{t.ticker}</div>
+                                                <div className="text-xs text-gray-500 mt-1">買入日期: {t.buyDate}</div>
+                                                <div className="flex gap-2 mt-2">
+                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Long: {t.edges.long}</span>
+                                                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Short: {t.edges.short}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <button className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold">檢討賣出</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+
+                        {/* Completed Trades */}
+                        <section>
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">歷史檢討報告 ({completedTrades.length})</h2>
+                            <div className="space-y-3">
+                                {completedTrades.map(t => {
+                                    const isProfit = t.pnlPercent >= 0;
+                                    return (
+                                        <div key={t.id} onClick={() => onSelect(t)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-95 transition-transform cursor-pointer">
+                                            <div>
+                                                <div className="font-bold text-lg text-gray-800">{t.ticker} <span className="text-xs font-normal text-gray-400 ml-1">持倉 {t.holdingDays} 天</span></div>
+                                                <div className="text-xs text-gray-500 mt-1">{t.buyDate} ➔ {t.sellDate}</div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className={`font-bold text-lg ${isProfit ? 'text-green-500' : 'text-red-500'}`}>
+                                                    {isProfit ? '+' : ''}{t.pnlPercent.toFixed(2)}%
+                                                </div>
+                                                <span className="text-gray-300"><Icons.ChevronRight /></span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </section>
+                    </main>
+
+                    <div className="p-4 pb-8">
+                        <button onClick={onNew} className="w-full bg-blue-600 text-white rounded-2xl py-4 flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-200 active:bg-blue-700 transition-colors">
+                            <span className="mr-2"><Icons.Plus /></span> 新增交易前檢視 (Checklist)
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- NEW TRADE (CHECKLIST) COMPONENT ---
+        function NewTradeForm({ onSave, onCancel, calculateEdges }) {
+            const [ticker, setTicker] = useState('');
+            const [buyDate, setBuyDate] = useState(new Date().toISOString().split('T')[0]);
+            const [targetBuyPrice, setTargetBuyPrice] = useState('');
+            const [strategy, setStrategy] = useState('LVP'); // Low volume pullback
+            const [answers, setAnswers] = useState({});
+
+            const edges = calculateEdges(answers);
+
+            const handleOptionSelect = (itemId, option) => {
+                setAnswers(prev => ({ ...prev, [itemId]: option }));
+            };
+
+            const handleSave = () => {
+                if (!ticker || !targetBuyPrice) return alert("請輸入股票代號與預計買入價");
+                onSave({
+                    ticker: ticker.toUpperCase(),
+                    buyDate,
+                    targetBuyPrice: parseFloat(targetBuyPrice),
+                    strategy,
+                    answers,
+                    edges
+                });
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-white">
+                    <header className="flex items-center p-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+                        <button onClick={onCancel} className="p-2 -ml-2 text-gray-500"><Icons.ArrowLeft /></button>
+                        <h1 className="text-lg font-bold flex-1 text-center pr-8">交易前 M.E.T.S 檢視</h1>
+                    </header>
+
+                    <main className="flex-1 overflow-y-auto pb-32">
+                        {/* Basic Info */}
+                        <div className="p-5 bg-gray-50 space-y-4 border-b border-gray-200">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">股票代號</label>
+                                    <input type="text" value={ticker} onChange={e => setTicker(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl uppercase text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. TSLA" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">計畫日期</label>
+                                    <input type="date" value={buyDate} onChange={e => setBuyDate(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl text-md font-medium focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">預計買入價</label>
+                                    <input type="number" step="0.01" value={targetBuyPrice} onChange={e => setTargetBuyPrice(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl text-md font-medium outline-none" placeholder="0.00" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">買入策略</label>
+                                    <select value={strategy} onChange={e => setStrategy(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl text-md font-medium bg-white outline-none">
+                                        <option value="LVP">Low Volume Pullback</option>
+                                        <option value="BOL">Breakout Play</option>
+                                        <option value="HVB">High Volume Breakout</option>
+                                        <option value="Other">其他</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Checklist */}
+                        <div className="p-5 space-y-8">
+                            {METS_CHECKLIST.map((cat, idx) => (
+                                <div key={idx} className="space-y-4">
+                                    <h2 className="font-extrabold text-blue-800 flex items-center gap-2 border-l-4 border-blue-500 pl-3">
+                                        {cat.category}
+                                    </h2>
+                                    <div className="space-y-5">
+                                        {cat.items.map(item => (
+                                            <div key={item.id} className="bg-white rounded-xl">
+                                                <p className="text-sm font-bold text-gray-700 mb-2">{item.label}</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {item.options.map((opt, oIdx) => {
+                                                        const isSelected = answers[item.id]?.text === opt.text;
+                                                        let edgeColor = "bg-gray-100 text-gray-600 border-gray-200"; // neutral
+                                                        if (isSelected) {
+                                                            if (opt.edge === 'long') edgeColor = "bg-green-100 border-green-500 text-green-800 font-bold border-2";
+                                                            else if (opt.edge === 'short') edgeColor = "bg-red-100 border-red-500 text-red-800 font-bold border-2";
+                                                            else edgeColor = "bg-gray-200 border-gray-500 text-gray-800 font-bold border-2";
+                                                        } else {
+                                                            edgeColor = "bg-white border-gray-200 text-gray-600 border";
+                                                        }
+
+                                                        return (
+                                                            <button 
+                                                                key={oIdx} 
+                                                                onClick={() => handleOptionSelect(item.id, opt)}
+                                                                className={`px-3 py-2 rounded-lg text-sm transition-all flex-1 min-w-[30%] ${edgeColor}`}
+                                                            >
+                                                                {opt.text}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+
+                    {/* Bottom Action Bar */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-8 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                        <div className="flex justify-between items-center mb-3 px-2">
+                            <div className="text-sm font-bold text-gray-600">系統評估:</div>
+                            <div className="flex gap-3">
+                                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500"></span> <span className="font-bold text-lg">{edges.long}</span> Long</div>
+                                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500"></span> <span className="font-bold text-lg">{edges.short}</span> Short</div>
+                            </div>
+                        </div>
+                        <button onClick={handleSave} className="w-full bg-black text-white rounded-2xl py-4 font-bold text-lg active:bg-gray-800 transition-colors">
+                            儲存計畫
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- REVIEW TRADE COMPONENT ---
+        function ReviewTradeForm({ trade, onSave, onCancel }) {
+            // Default actual buy price to target if not set
+            const [actualBuyPrice, setActualBuyPrice] = useState(trade.targetBuyPrice);
+            const [sellDate, setSellDate] = useState(new Date().toISOString().split('T')[0]);
+            const [sellPrice, setSellPrice] = useState('');
+            const [reviewNotes, setReviewNotes] = useState('');
+
+            const handleSave = () => {
+                if (!sellPrice) return alert("請輸入賣出價");
+                
+                // Calculations
+                const buyD = new Date(trade.buyDate);
+                const sellD = new Date(sellDate);
+                const holdingMs = sellD - buyD;
+                const holdingDays = Math.max(0, Math.floor(holdingMs / (1000 * 60 * 60 * 24)));
+                
+                const bp = parseFloat(actualBuyPrice);
+                const sp = parseFloat(sellPrice);
+                const pnlPercent = ((sp - bp) / bp) * 100;
+
+                onSave({
+                    actualBuyPrice: bp,
+                    sellDate,
+                    sellPrice: sp,
+                    reviewNotes,
+                    holdingDays,
+                    pnlPercent
+                });
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-white">
+                    <header className="flex items-center p-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+                        <button onClick={onCancel} className="p-2 -ml-2 text-gray-500"><Icons.ArrowLeft /></button>
+                        <h1 className="text-lg font-bold flex-1 text-center pr-8">交易後檢討</h1>
+                    </header>
+
+                    <main className="flex-1 overflow-y-auto p-5 pb-32 space-y-6">
+                        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-black text-blue-900">{trade.ticker}</h2>
+                                <p className="text-xs text-blue-700 mt-1">建立日期: {trade.buyDate}</p>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-xs text-blue-600 font-bold mb-1">M.E.T.S 評分</div>
+                                <div className="flex gap-2">
+                                    <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">L: {trade.edges.long}</span>
+                                    <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">S: {trade.edges.short}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h3 className="font-bold text-gray-800">輸入實際交易數據</h3>
+                            
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">實際買入價 (若與預期不同可修改)</label>
+                                <input type="number" step="0.01" value={actualBuyPrice} onChange={e => setActualBuyPrice(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl text-md font-medium outline-none bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">賣出日期</label>
+                                    <input type="date" value={sellDate} onChange={e => setSellDate(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl text-md font-medium outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">賣出價</label>
+                                    <input type="number" step="0.01" value={sellPrice} onChange={e => setSellPrice(e.target.value)} className="w-full p-3 border-2 border-blue-200 rounded-xl text-md font-bold outline-none focus:border-blue-500" placeholder="0.00" />
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="block text-xs font-bold text-gray-500 mb-2">檢討與心得筆記 (Lessons Learned)</label>
+                                <textarea rows="4" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="例如：太早賣出、跌破支持未止損、成功抓住趨勢..."></textarea>
+                            </div>
+                        </div>
+                    </main>
+
+                    <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-8">
+                        <button onClick={handleSave} className="w-full bg-blue-600 text-white rounded-2xl py-4 font-bold text-lg shadow-lg active:bg-blue-700 transition-colors flex justify-center items-center gap-2">
+                            <Icons.CheckCircle /> 完成檢討報告
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- REPORT VIEW COMPONENT ---
+        function ReportView({ trade, onBack }) {
+            const isProfit = trade.pnlPercent >= 0;
+
+            return (
+                <div className="flex flex-col h-full bg-gray-50">
+                    <header className="flex items-center p-4 bg-white sticky top-0 z-10 shadow-sm">
+                        <button onClick={onBack} className="p-2 -ml-2 text-gray-500"><Icons.ArrowLeft /></button>
+                        <h1 className="text-lg font-bold flex-1 text-center pr-8">檢討報告</h1>
+                    </header>
+
+                    <main className="flex-1 overflow-y-auto p-5 pb-10 space-y-6">
+                        {/* Summary Card */}
+                        <div className={`p-6 rounded-3xl text-white shadow-lg ${isProfit ? 'bg-gradient-to-br from-green-500 to-emerald-700' : 'bg-gradient-to-br from-red-500 to-rose-700'}`}>
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h2 className="text-3xl font-black tracking-tight">{trade.ticker}</h2>
+                                    <p className="text-white/80 text-sm mt-1">{trade.strategy} Strategy</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-white/70 text-xs font-medium mb-1">總回報 (P&L)</p>
+                                    <div className="text-3xl font-black">
+                                        {isProfit ? '+' : ''}{trade.pnlPercent.toFixed(2)}%
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4 border-t border-white/20 pt-4 mt-2">
+                                <div>
+                                    <p className="text-white/70 text-xs mb-1">買入價</p>
+                                    <p className="font-bold">${trade.actualBuyPrice}</p>
+                                </div>
+                                <div>
+                                    <p className="text-white/70 text-xs mb-1">賣出價</p>
+                                    <p className="font-bold">${trade.sellPrice}</p>
+                                </div>
+                                <div>
+                                    <p className="text-white/70 text-xs mb-1">持倉天數</p>
+                                    <p className="font-bold">{trade.holdingDays} 天</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Notes Card */}
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <Icons.TrendingUp /> 檢討筆記
+                            </h3>
+                            <p className="text-gray-600 text-sm whitespace-pre-wrap leading-relaxed">
+                                {trade.reviewNotes || "無留下任何筆記。"}
+                            </p>
+                        </div>
+
+                        {/* Checklist History */}
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-gray-800">當時的 M.E.T.S 判斷</h3>
+                                <div className="flex gap-2">
+                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">Long: {trade.edges.long}</span>
+                                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">Short: {trade.edges.short}</span>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                {Object.entries(trade.answers).map(([key, option], idx) => {
+                                    // find original question label
+                                    let qLabel = key;
+                                    METS_CHECKLIST.forEach(cat => cat.items.forEach(i => { if(i.id === key) qLabel = i.label; }));
+
+                                    let edgeDot = "bg-gray-300";
+                                    if(option.edge === 'long') edgeDot = "bg-green-500";
+                                    if(option.edge === 'short') edgeDot = "bg-red-500";
+
+                                    return (
+                                        <div key={idx} className="flex items-start justify-between border-b border-gray-50 pb-2 last:border-0">
+                                            <span className="text-xs text-gray-500 w-1/2 pr-2">{qLabel}</span>
+                                            <div className="flex items-center gap-2 w-1/2 justify-end text-right">
+                                                <span className="text-sm font-medium text-gray-800">{option.text}</span>
+                                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${edgeDot}`}></span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
