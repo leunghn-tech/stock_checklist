@@ -22,7 +22,7 @@
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "PingFang HK", "Helvetica Neue", Roboto, sans-serif;
-      background-color: #f2f4f7;
+      background: linear-gradient(135deg, #f0f4f8 0%, #e8f0f7 100%);
       margin: 0;
       padding: 0;
       -webkit-font-smoothing: antialiased;
@@ -39,8 +39,8 @@
     .animate-fade-in-up-delay-2 { animation: fadeInUp 0.4s ease-out 0.14s forwards; opacity: 0; }
     .btn-press { transition: transform 0.12s ease, box-shadow 0.12s ease; }
     .btn-press:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
-    .gradient-text-profit { background: linear-gradient(135deg, #10b981, #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .gradient-text-loss { background: linear-gradient(135deg, #ef4444, #dc2626); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .gradient-text-profit { background: linear-gradient(135deg, #06b6d4, #0891b2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .gradient-text-loss { background: linear-gradient(135deg, #f97316, #ea580c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .card-shadow-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.04); }
     .card-shadow-md { box-shadow: 0 8px 24px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04); }
     .card-shadow-lg { box-shadow: 0 20px 35px rgba(0,0,0,0.06), 0 6px 14px rgba(0,0,0,0.04); }
@@ -263,16 +263,16 @@
 
       return (
         <div className="flex flex-col min-h-screen">
-          <header className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white px-6 pt-10 pb-10 rounded-b-[3rem] shadow-xl safe-bottom">
+          <header className="bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white px-6 pt-12 pb-12 rounded-b-[3rem] shadow-2xl safe-bottom">
             <div className="flex justify-between items-center mb-6">
               <div><h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">M.E.T.S.</h1><p className="text-indigo-200 text-sm mt-1">交易檢討系統</p></div>
               <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-inner"><Icons.Target size={28}/></div>
             </div>
             {totalComp>0?(
               <div className="grid grid-cols-3 gap-4 mt-4">
-                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm text-center"><p className="text-2xl md:text-3xl font-extrabold">{totalComp}</p><p className="text-xs text-indigo-200 uppercase tracking-wider mt-1">總交易</p></div>
-                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm text-center"><p className={`text-2xl md:text-3xl font-extrabold ${parseFloat(winRate)>=50?'text-emerald-300':'text-rose-300'}`}>{winRate}{winRate!=='--'?'%':''}</p><p className="text-xs text-indigo-200 uppercase tracking-wider mt-1">勝率</p></div>
-                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm text-center"><p className={`text-2xl md:text-3xl font-extrabold ${parseFloat(avgPnL)>=0?'text-emerald-300':'text-rose-300'}`}>{parseFloat(avgPnL)>=0?'+':''}{avgPnL}{avgPnL!=='--'?'%':''}</p><p className="text-xs text-indigo-200 uppercase tracking-wider mt-1">平均盈虧</p></div>
+                <div className="bg-white/15 rounded-3xl p-5 backdrop-blur-md border border-white/20 text-center"><p className="text-3xl md:text-4xl font-extrabold tracking-tight">{totalComp}</p><p className="text-xs text-blue-100 uppercase tracking-wider mt-2 font-semibold">總交易</p></div>
+                <div className="bg-white/15 rounded-3xl p-5 backdrop-blur-md border border-white/20 text-center"><p className={`text-3xl md:text-4xl font-extrabold tracking-tight ${parseFloat(winRate)>=50?'text-cyan-300':'text-orange-300'}`}>{winRate}{winRate!=='--'?'%':''}</p><p className="text-xs text-blue-100 uppercase tracking-wider mt-2 font-semibold">勝率</p></div>
+                <div className="bg-white/15 rounded-3xl p-5 backdrop-blur-md border border-white/20 text-center"><p className={`text-3xl md:text-4xl font-extrabold tracking-tight ${parseFloat(avgPnL)>=0?'text-cyan-300':'text-orange-300'}`}>{parseFloat(avgPnL)>=0?'+':''}{avgPnL}{avgPnL!=='--'?'%':''}</p><p className="text-xs text-blue-100 uppercase tracking-wider mt-2 font-semibold">平均盈虧</p></div>
               </div>
             ):<div className="mt-4 text-center py-5 bg-white/10 rounded-2xl text-white/80 text-base">尚無交易記錄，開始新增一筆吧！</div>}
           </header>
@@ -287,7 +287,7 @@
                     <div key={t.id} className="bg-white rounded-2xl card-shadow-sm border border-slate-100 overflow-hidden animate-fade-in-up" style={{animationDelay:`${idx*0.06}s`}}>
                       <div onClick={()=>onSelect(t)} className="p-5 flex items-center justify-between cursor-pointer">
                         <div className="flex-1 min-w-0"><div className="flex items-center gap-3 mb-1"><span className="font-extrabold text-2xl text-slate-900 truncate">{t.ticker}</span><span className="badge bg-indigo-50 text-indigo-700 border border-indigo-100">{t.strategy}</span></div><div className="flex flex-col gap-1.5 text-sm text-slate-500 mt-3"><div className="flex items-center gap-2"><Icons.Calendar size={14}/><span>{formatDateFull(t.buyDate)}</span></div><div className="flex items-center gap-2"><Icons.Target size={14}/><span>計劃買入價 <strong className="text-slate-800">${t.targetBuyPrice?.toFixed(2)}</strong></span></div></div><div className="flex gap-3 mt-4"><span className="badge bg-emerald-50 text-emerald-700 border border-emerald-100">📈 Long {t.edges?.long??0}</span><span className="badge bg-rose-50 text-rose-700 border border-rose-100">📉 Short {t.edges?.short??0}</span></div></div>
-                        <button onClick={(e)=>{e.stopPropagation();onSelect(t);}} className="ml-4 text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold btn-press shadow-sm whitespace-nowrap transition-colors">檢討賣出</button>
+                        <button onClick={(e)=>{e.stopPropagation();onSelect(t);}} className="ml-4 text-base bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-2xl font-bold btn-press shadow-md whitespace-nowrap transition-all active:scale-95">檢討賣出</button>
                       </div>
                       <div className="border-t border-slate-50 px-5 py-2.5 flex justify-end bg-slate-50/80"><button onClick={(e)=>{e.stopPropagation();onDelete(t.id);}} className="text-xs text-slate-400 hover:text-rose-500 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"><Icons.Trash size={14}/>刪除</button></div>
                     </div>
@@ -313,7 +313,7 @@
             <div className="h-4"></div>
           </main>
           <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-slate-100 via-slate-100 to-transparent px-5 md:px-8 pt-3 pb-8 safe-bottom">
-            <button onClick={onNew} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl py-5 flex items-center justify-center font-extrabold text-xl shadow-lg shadow-indigo-200/50 btn-press active:from-indigo-700 active:to-purple-700 transition-all"><span className="mr-3"><Icons.Plus size={28}/></span>新增交易前檢視</button>
+            <button onClick={onNew} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-3xl py-6 flex items-center justify-center font-extrabold text-lg shadow-xl shadow-blue-300/40 btn-press hover:shadow-2xl active:scale-95 transition-all border border-blue-500/50"><span className="mr-3"><Icons.Plus size={32}/></span>新增交易前檢視</button>
           </div>
         </div>
       );
@@ -504,9 +504,9 @@
 
       return (
         <div className="flex flex-col min-h-screen bg-white relative">
-          <header className="flex items-center p-5 border-b border-slate-100 bg-white/95 backdrop-blur-sm sticky top-0 z-20"><button onClick={onCancel} className="p-2 -ml-2 text-slate-500 btn-press rounded-xl"><Icons.ArrowLeft/></button><h1 className="text-xl font-extrabold flex-1 text-center pr-8 text-slate-900">交易後檢討</h1></header>
+          <header className="flex items-center p-5 border-b border-slate-200 bg-white/98 backdrop-blur-md sticky top-0 z-20 shadow-sm"><button onClick={onCancel} className="p-2.5 -ml-2 text-slate-600 hover:text-slate-900 btn-press rounded-xl transition-colors"><Icons.ArrowLeft/></button><h1 className="text-2xl font-extrabold flex-1 text-center pr-8 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">交易後檢討</h1></header>
           <main className="flex-1 overflow-y-auto pb-48 hide-scrollbar">
-            <div className="p-5 md:p-8"><div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl text-white shadow-lg card-shadow-lg"><div className="flex justify-between"><div><h2 className="text-4xl font-black">{trade.ticker}</h2><p className="text-indigo-200 text-sm mt-1">{formatDateFull(trade.buyDate)} · {trade.strategy}</p></div><div className="bg-white/20 rounded-xl p-4"><p className="text-xs text-indigo-200 mb-1">M.E.T.S</p><div className="flex gap-3"><span className="text-sm bg-emerald-400 text-emerald-900 px-3 py-1 rounded-full font-bold">L:{trade.edges?.long??0}</span><span className="text-sm bg-rose-400 text-rose-900 px-3 py-1 rounded-full font-bold">S:{trade.edges?.short??0}</span></div></div></div></div></div>
+            <div className="p-5 md:p-8"><div className="bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 p-8 rounded-3xl text-white shadow-2xl card-shadow-lg"><div className="flex justify-between items-start"><div><h2 className="text-5xl font-black tracking-tight">{trade.ticker}</h2><p className="text-blue-100 text-sm mt-2 font-medium">{formatDateFull(trade.buyDate)} · {trade.strategy}</p></div><div className="bg-white/15 backdrop-blur-md rounded-2xl p-5 border border-white/20"><p className="text-xs text-blue-100 mb-2 font-semibold uppercase tracking-wide">M.E.T.S 評分</p><div className="flex gap-3"><span className="text-sm bg-cyan-400/90 text-cyan-900 px-4 py-2 rounded-full font-bold shadow-lg">L:{trade.edges?.long??0}</span><span className="text-sm bg-orange-400/90 text-orange-900 px-4 py-2 rounded-full font-bold shadow-lg">S:{trade.edges?.short??0}</span></div></div></div></div></div>
             <div className="px-5 md:px-8 space-y-6">
               <h3 className="font-extrabold text-slate-800 text-xl flex items-center gap-2"><Icons.CheckCircle size={20}/>輸入實際交易數據</h3>
               <div><label className="block text-sm font-bold text-slate-600 mb-2">實際買入價</label><input type="number" step="0.01" value={actualBuyPrice} onChange={e=>setActualBuyPrice(e.target.value)} className={`w-full p-4 border-2 rounded-2xl text-lg font-bold outline-none ${showValidation&&(isNaN(parseFloat(actualBuyPrice))||parseFloat(actualBuyPrice)<=0)?'border-rose-300 bg-rose-50':'border-slate-200 focus:border-indigo-500'}`}/></div>
@@ -515,7 +515,7 @@
               <div className="pt-2"><label className="block text-sm font-bold text-slate-600 mb-2">💭 檢討與心得筆記</label><textarea rows="5" value={reviewNotes} onChange={e=>setReviewNotes(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-2xl text-base outline-none focus:border-indigo-500 bg-slate-50 focus:bg-white resize-none" placeholder="例如：太早賣出、跌破支持未止損..."></textarea></div>
             </div>
           </main>
-          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-5 pb-10 safe-bottom shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 app-container"><button onClick={handleSave} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl py-5 font-extrabold text-xl btn-press shadow-lg flex justify-center items-center gap-3"><Icons.CheckCircle size={24}/>完成檢討報告</button></div>
+          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-5 pb-10 safe-bottom shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 app-container">              <button onClick={handleSave} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-3xl py-6 font-extrabold text-lg btn-press shadow-xl hover:shadow-2xl transition-all active:scale-95 flex justify-center items-center gap-3 border border-blue-500/50"><Icons.CheckCircle size={26}/>完成檢討報告</button></div>
         </div>
       );
     }
@@ -536,7 +536,7 @@
             <h1 className="text-xl font-extrabold flex-1 text-center pr-8 text-slate-900">檢討報告</h1>
           </header>
           <main className="flex-1 overflow-y-auto px-5 md:px-8 py-8 pb-28 space-y-8 hide-scrollbar">
-            <div className={`rounded-3xl p-8 text-white shadow-xl card-shadow-lg animate-fade-in-up ${isProfit ? 'bg-gradient-to-br from-emerald-500 to-teal-700' : 'bg-gradient-to-br from-rose-500 to-rose-700'}`}>
+            <div className={`rounded-3xl p-8 text-white shadow-2xl card-shadow-lg animate-fade-in-up ${isProfit ? 'bg-gradient-to-br from-cyan-500 via-blue-600 to-blue-700' : 'bg-gradient-to-br from-orange-500 via-red-500 to-red-700'}`}>
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h2 className="text-5xl font-black tracking-tight">{trade.ticker}</h2>
@@ -603,7 +603,7 @@
               )}
             </div>
             <div className="pt-4">
-              <button onClick={() => onDelete(trade.id)} className="w-full border-2 border-rose-200 text-rose-500 rounded-2xl py-4 font-bold text-lg btn-press hover:bg-rose-50 flex items-center justify-center gap-3 transition-colors"><Icons.Trash size={20}/> 刪除此檢討報告</button>
+              <button onClick={() => onDelete(trade.id)} className="w-full border-2 border-red-400 text-red-600 rounded-3xl py-5 font-bold text-base btn-press hover:bg-red-50 hover:border-red-500 flex items-center justify-center gap-3 transition-all active:scale-95 shadow-sm"><Icons.Trash size={22}/> 刪除此檢討報告</button>
             </div>
           </main>
         </div>
