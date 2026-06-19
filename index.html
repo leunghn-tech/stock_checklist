@@ -407,68 +407,39 @@
               <details className="bg-white border border-slate-200 rounded-2xl p-5 card-shadow-sm">
                 <summary className="font-bold text-base text-slate-700 cursor-pointer">💰 資金管理與風險控制 (選填)</summary>
                 <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-500">總投資金額 (港元)</label>
-                    <input type="number" value={totalCapital} onChange={e=>setTotalCapital(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-base"/>
-                    {usdCapitalDisplay !== null && capitalHKD > 0 && (
-                      <div className="text-xs text-indigo-600 mt-1 font-medium">
-                        ≈ 美元 ${usdCapitalDisplay.toFixed(2)} (匯率 1 USD = 7.8 HKD)
-                      </div>
-                    )}
-                  </div>
-                  <div><label className="text-xs font-bold text-slate-500">止損價</label><input type="number" step="0.01" value={stopLossPrice} onChange={e=>setStopLossPrice(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-base"/></div>
-                  <div><label className="text-xs font-bold text-slate-500">目標價</label><input type="number" step="0.01" value={targetPrice} onChange={e=>setTargetPrice(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-base"/></div>
-                  <div className="flex flex-col justify-end">
-                    <div className="text-xs text-slate-500">風險報酬比</div>
-                    <div className="font-bold text-xl">{rrRatio!=='--'?rrRatio:'--'}</div>
-                    <div className="text-xs text-slate-400">風險 {riskPercent}% / 報酬 {rewardPercent}%</div>
-                  </div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">總資金 (HKD)</label><input type="number" value={totalCapital} onChange={e=>setTotalCapital(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500"/></div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">止損價</label><input type="number" step="0.01" value={stopLossPrice} onChange={e=>setStopLossPrice(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500" placeholder="0.00"/></div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">目標價</label><input type="number" step="0.01" value={targetPrice} onChange={e=>setTargetPrice(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500" placeholder="0.00"/></div>
+                  <div className="flex flex-col justify-end pb-1"><p className="text-[10px] text-slate-400 font-bold uppercase">Risk:Reward</p><p className={`text-sm font-black ${parseFloat(rrRatio)>=2?'text-emerald-600':'text-slate-600'}`}>{rrRatio} : 1</p></div>
                 </div>
-                {maxShares !== null && (
+                {buyP && stopP && (
                   <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                    <p className="text-sm font-bold text-indigo-800 mb-2">📈 基於最大回撤 0.5% 的倉位計算 ({isUSStock ? '美元' : '港元'})</p>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div><span className="text-slate-500">每股風險：</span><strong className="text-slate-700">${ (buyP - stopP).toFixed(2) }</strong></div>
-                      <div><span className="text-slate-500">最大虧損額：</span><strong className="text-slate-700">${ (effectiveCapital * 0.005).toFixed(2) }</strong></div>
-                      <div><span className="text-slate-500">可買入股數：</span><strong className="text-indigo-700 text-lg">{maxShares} 股</strong></div>
-                      <div><span className="text-slate-500">可買入金額：</span><strong className="text-indigo-700 text-lg">${ maxAmount.toFixed(2) }</strong></div>
+                    <div className="flex justify-between items-center mb-3"><span className="text-xs font-bold text-indigo-700">建議倉位 (0.5% 風險)</span><span className="text-[10px] bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-bold">{isUSStock?'美股 (USD)':'港股 (HKD)'}</span></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><p className="text-[10px] text-indigo-400 font-bold uppercase">可買股數</p><p className="text-xl font-black text-indigo-900">{maxShares || 0} <span className="text-xs">股</span></p></div>
+                      <div><p className="text-[10px] text-indigo-400 font-bold uppercase">投入金額</p><p className="text-xl font-black text-indigo-900">${maxAmount?.toFixed(2) || 0}</p></div>
                     </div>
                   </div>
                 )}
               </details>
-            </div>
-
-            <div className="p-5 md:p-8 space-y-10">
-              <div className="flex items-center justify-between"><span className="text-sm font-bold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full">✅ 核對清單 (加權計算)</span><div className="flex items-center gap-3"><span className="text-xs text-slate-400">完成 {completionPercent}%</span><div className="w-20 h-2.5 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{width:`${completionPercent}%`}}></div></div></div></div>
-              {METS_CHECKLIST.map((cat,catIdx)=>{
-                const catEdge = categoryEdges[cat.category]||{long:0,short:0,total:0};
-                const colorClasses = ["category-market", "category-sector", "category-trend", "category-structure"];
-                return (
-                  <div key={catIdx} className={`bg-white rounded-2xl border border-slate-100 card-shadow-sm p-6 space-y-5 ${colorClasses[catIdx]}`}>
-                    <div className="flex items-center justify-between"><h2 className="font-extrabold text-slate-800 text-lg flex items-center gap-3"><span className={`w-2 h-6 rounded-full ${catIdx===0?'bg-blue-500':catIdx===1?'bg-purple-500':catIdx===2?'bg-emerald-500':'bg-amber-500'}`}></span>{cat.category}</h2><div className="flex gap-3">{catEdge.long>0&&<span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">+{catEdge.long}L</span>}{catEdge.short>0&&<span className="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded-full font-bold">-{catEdge.short}S</span>}</div></div>
-                    <p className="text-xs text-slate-400 -mt-2">{cat.description}</p>
-                    <div className="space-y-5">
-                      {cat.items.map(item=>{
-                        const selected = answers[item.id];
-                        return (
-                          <div key={item.id} className="space-y-2.5">
-                            <p className="text-sm font-bold text-slate-600 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-slate-300"></span>{item.label}{selected&&<span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-2 ${selected.edge==='long'?'bg-emerald-100 text-emerald-600':selected.edge==='short'?'bg-rose-100 text-rose-600':'bg-slate-100 text-slate-500'}`}>{selected.edge==='long'?'✓':selected.edge==='short'?'⚠':'—'}</span>}</p>
-                            <div className="flex flex-wrap gap-3">
-                              {item.options.map((opt,oIdx)=>{
-                                const isSelected = selected?.text===opt.text;
-                                let btnStyle = "px-4 py-3 rounded-xl text-sm font-medium transition-all flex-1 min-w-[30%] text-center btn-press border-2";
-                                if(isSelected){ if(opt.edge==='long') btnStyle+=" bg-emerald-50 border-emerald-500 text-emerald-800 font-bold shadow-sm"; else if(opt.edge==='short') btnStyle+=" bg-rose-50 border-rose-500 text-rose-800 font-bold shadow-sm"; else btnStyle+=" bg-slate-100 border-slate-400 text-slate-800 font-bold shadow-sm"; }
-                                else btnStyle+=" bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50";
-                                return <button key={oIdx} onClick={()=>handleOptionSelect(item.id,opt)} className={btnStyle}>{opt.text}</button>;
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+              <div className="flex items-center justify-between pt-2"><h3 className="font-extrabold text-slate-800 text-lg flex items-center gap-2"><Icons.CheckCircle size={20}/>M.E.T.S. 核對清單</h3><div className="flex items-center gap-2"><div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 transition-all duration-500" style={{width:`${completionPercent}%`}}></div></div><span className="text-xs font-bold text-slate-400">{completionPercent}%</span></div></div>
+              {METS_CHECKLIST.map((cat,cIdx)=>(
+                <div key={cat.category} className="space-y-4 animate-fade-in-up" style={{animationDelay:`${cIdx*0.1}s`}}>
+                  <div className="flex flex-col border-l-4 border-indigo-500 pl-4 py-1"><h4 className="font-black text-slate-900 text-base">{cat.category}</h4><p className="text-xs text-slate-400 font-medium">{cat.description}</p></div>
+                  <div className="space-y-5">
+                    {cat.items.map(item=>(
+                      <div key={item.id} className="bg-white rounded-2xl p-1 border border-slate-100 card-shadow-sm">
+                        <p className="px-4 pt-3 pb-2 text-sm font-bold text-slate-700">{item.label}</p>
+                        <div className="flex flex-wrap gap-2 p-2">
+                          {item.options.map(opt=>(
+                            <button key={opt.text} onClick={()=>handleOptionSelect(item.id,opt)} className={`flex-1 min-w-[120px] py-3 px-3 rounded-xl text-xs font-bold transition-all border-2 ${answers[item.id]?.text===opt.text? (opt.edge==='long'?'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-100':'bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-100') : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}>{opt.text}</button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </main>
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-5 pb-10 safe-bottom shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 app-container">
@@ -486,15 +457,18 @@
       const [reviewNotes, setReviewNotes] = useState('');
       const [showValidation, setShowValidation] = useState(false);
 
-      const previewBuy = parseFloat(actualBuyPrice); const previewSell = parseFloat(sellPrice);
-      const valid = !isNaN(previewBuy)&&previewBuy>0&&!isNaN(previewSell)&&previewSell>0;
-      const previewPnL = valid?calcPnL(previewBuy,previewSell):null;
-      const previewDays = valid?calcHoldingDays(trade.buyDate,sellDate):null;
+      const previewBuy = parseFloat(actualBuyPrice)||0;
+      const previewSell = parseFloat(sellPrice)||0;
+      const previewDays = calcHoldingDays(trade.buyDate,sellDate);
+      const previewPnL = calcPnL(previewBuy,previewSell);
+      const valid = previewBuy>0 && previewSell>0 && sellDate;
 
       const handleSave = () => {
         setShowValidation(true);
-        const errors = []; const bp = parseFloat(actualBuyPrice); const sp = parseFloat(sellPrice);
-        if(isNaN(bp)||bp<=0) errors.push('請輸入有效的實際買入價');
+        const bp = parseFloat(actualBuyPrice);
+        const sp = parseFloat(sellPrice);
+        const errors = [];
+        if(isNaN(bp)||bp<=0) errors.push('請輸入有效的買入價');
         if(isNaN(sp)||sp<=0) errors.push('請輸入有效的賣出價');
         if(!sellDate) errors.push('請選擇賣出日期');
         if(sellDate&&trade.buyDate&&sellDate<trade.buyDate) errors.push('賣出日期不能早於買入日期');
