@@ -4,606 +4,671 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>M.E.T.S. 股票交易檢討系統</title>
-  <script src="https://cdn.tailwindcss.com">
-  </script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js">
-  </script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js">
-  </script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js">
-  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    :root {
-      --safe-bottom: env(safe-area-inset-bottom, 16px);
-    }
-    * {
-      -webkit-tap-highlight-color: transparent;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "PingFang HK", "Helvetica Neue", Roboto, sans-serif;
-      background-color: #f2f4f7;
-      margin: 0;
-      padding: 0;
-      -webkit-font-smoothing: antialiased;
-      overscroll-behavior: none;
-    }
+    :root { --safe-bottom: env(safe-area-inset-bottom, 16px); }
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang HK", "Helvetica Neue", Roboto, sans-serif; background-color: #f9fafb; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(18px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
     .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
-    .animate-fade-in-up-delay-1 { animation: fadeInUp 0.4s ease-out 0.08s forwards; opacity: 0; }
-    .animate-fade-in-up-delay-2 { animation: fadeInUp 0.4s ease-out 0.14s forwards; opacity: 0; }
     .btn-press { transition: transform 0.12s ease, box-shadow 0.12s ease; }
-    .btn-press:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
-    .gradient-text-profit { background: linear-gradient(135deg, #10b981, #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .gradient-text-loss { background: linear-gradient(135deg, #ef4444, #dc2626); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .btn-press:active { transform: scale(0.97); }
+    .gradient-text-profit { background: linear-gradient(135deg, #10b981, #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .gradient-text-loss { background: linear-gradient(135deg, #ef4444, #dc2626); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .card-shadow-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.04); }
     .card-shadow-md { box-shadow: 0 8px 24px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04); }
-    .card-shadow-lg { box-shadow: 0 20px 35px rgba(0,0,0,0.06), 0 6px 14px rgba(0,0,0,0.04); }
+    .tab-active { border-bottom: 3px solid #7c3aed; color: #6d28d9; font-weight: 700; }
+    .tab-inactive { color: #9ca3af; border-bottom: 3px solid transparent; }
     .safe-bottom { padding-bottom: var(--safe-bottom); }
-    input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-    .badge {
-      display: inline-flex; align-items: center; padding: 0.2em 0.75em; border-radius: 9999px;
-      font-size: 0.7rem; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em;
-    }
-    .app-container {
-      width: 100%;
-      max-width: 720px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    @media (min-width: 1024px) {
-      .app-container { max-width: 860px; }
-    }
-    @media (min-width: 1280px) {
-      .app-container { max-width: 960px; }
-    }
+    .badge { display: inline-flex; align-items: center; padding: 0.2em 0.75em; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+    .app-container { width: 100%; max-width: 720px; margin: 0 auto; }
+    @media (min-width: 1024px) { .app-container { max-width: 860px; } }
+    .chip-inactive { background: white; border: 1px solid #e5e7eb; color: #374151; }
+    .chip-active { background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: 1px solid transparent; box-shadow: 0 2px 6px rgba(99,102,241,0.25); }
+    .data-row { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid #f3f4f6; font-size: 0.75rem; }
+    .data-row:last-child { border-bottom: none; }
+    .data-label { color: #9ca3af; white-space: nowrap; font-weight: 500; }
+    .data-value { font-weight: 600; color: #374151; text-align: right; }
+    /* 緊湊佈局輔助 */
+    .compact-section { padding: 0.5rem 0.75rem; }
+    .compact-input { padding: 0.6rem 0.75rem; }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useEffect, useCallback } = React;
+    const { useState, useEffect, useMemo } = React;
 
-    // M.E.T.S 核對清單
+    // ---- M.E.T.S 清單 ----
     const METS_CHECKLIST = [
-      {
-        category: "大盤指數 (Market)",
-        description: "評估整體市場環境",
-        items: [
-          { id: "m_trend", label: "大盤指數趨勢", options: [
-            { text: "強勢上升", edge: "long", weight: 1 }, { text: "弱勢上升", edge: "long", weight: 1 }, { text: "盤整區間", edge: "neutral", weight: 1 }, { text: "弱下降趨勢", edge: "short", weight: 1 }, { text: "強勁下降趨勢", edge: "short", weight: 1 }
-          ]},
-          { id: "m_dist", label: "出貨日 (Distribution Days)", options: [
-            { text: "無 / 很少", edge: "long", weight: 1 }, { text: "有顯著出貨日", edge: "short", weight: 1 }
-          ]},
-          { id: "m_breadth50", label: "市寬 - 於50天線以上比例", options: [
-            { text: ">70%", edge: "long", weight: 1 }, { text: "50-70%", edge: "neutral", weight: 1 }, { text: "<50%", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }
-          ]},
-          { id: "m_breadth200", label: "市寬 - 於200天線以上比例", options: [
-            { text: ">60%", edge: "long", weight: 1 }, { text: "40-60%", edge: "neutral", weight: 1 }, { text: "<40%", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }
-          ]},
-          { id: "m_other_sell", label: "Other Sell Signal", options: [
-            { text: "市寬背馳", edge: "short", weight: 1 }, { text: "突兀走勢", edge: "short", weight: 1 }, { text: "急漲性走勢", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }
-          ]}
-        ]
-      },
-      {
-        category: "所屬板塊 (Sector)",
-        description: "評估行業板塊強弱",
-        items: [
-          { id: "e_rs", label: "板塊相對強度 (RS Rating)", options: [
-            { text: "★★★★★ (強)", edge: "long", weight: 1 }, { text: "★★★★☆ (中上)", edge: "long", weight: 1 }, { text: "★★★☆☆ (中等)", edge: "neutral", weight: 1 }, { text: "★★☆☆☆ (弱)", edge: "short", weight: 1 }
-          ]},
-          { id: "e_trend", label: "所屬板塊趨勢", options: [
-            { text: "上升趨勢", edge: "long", weight: 1 }, { text: "橫行區間 (可能突破)", edge: "long", weight: 1 }, { text: "下跌趨勢", edge: "short", weight: 1 }
-          ]},
-          { id: "e_peer_rank", label: "個股相對同行排名", options: [
-            { text: "前 25%", edge: "long", weight: 1 }, { text: "25%-50%", edge: "neutral", weight: 1 }, { text: "後 50%", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }
-          ]}
-        ]
-      },
-      {
-        category: "個股趨勢 (Trend)",
-        description: "個股技術走勢",
-        items: [
-          { id: "t_rs", label: "個股相對強度 (RS Rating)", options: [
-            { text: "高於 80", edge: "long", weight: 1 }, { text: "50 - 80", edge: "neutral", weight: 1 }, { text: "低於 50", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }
-          ]},
-          { id: "t_long_trend", label: "長期趨勢 (週線)", options: [
-            { text: "上升趨勢", edge: "long", weight: 1 }, { text: "橫行區間", edge: "neutral", weight: 1 }, { text: "下跌趨勢", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }
-          ]},
-          { id: "t_mid_trend", label: "中/短期趨勢 (日線)", options: [
-            { text: "上升趨勢", edge: "long", weight: 1 }, { text: "盤整", edge: "neutral", weight: 1 }, { text: "下跌趨勢", edge: "short", weight: 1 }
-          ]}
-        ]
-      },
-      {
-        category: "個股交易型態 (Structure/Vol)",
-        description: "支持阻力、成交量與型態分析",
-        items: [
-          { id: "s_daily_support", label: "日線圖 - 靠近重要支持位", options: [
-            { text: "是，距離很近 (<3%)", edge: "long", weight: 1 }, { text: "距離適中 (3-5%)", edge: "neutral", weight: 1 }, { text: "距離較遠 (>5%)", edge: "short", weight: 1 }
-          ]},
-          { id: "s_daily_resist", label: "日線圖 - 接近阻力位", options: [
-            { text: "距離較遠 (>5%)", edge: "long", weight: 1 }, { text: "距離適中 (3-5%)", edge: "neutral", weight: 1 }, { text: "非常接近 (<3%)", edge: "short", weight: 1 }
-          ]},
-          { id: "s_weekly_support", label: "週線圖 - 靠近支持位", options: [
-            { text: "是，有強支撐", edge: "long", weight: 1 }, { text: "無明顯支持", edge: "neutral", weight: 1 }, { text: "已跌破支持", edge: "short", weight: 1 }
-          ]},
-          { id: "s_weekly_resist", label: "週線圖 - 接近阻力位", options: [
-            { text: "距離較遠", edge: "long", weight: 1 }, { text: "接近中", edge: "neutral", weight: 1 }, { text: "非常接近 / 已觸及", edge: "short", weight: 1 }
-          ]},
-          { id: "s_trendline", label: "趨勢線支持 (上升趨勢線)", options: [
-            { text: "觸及上升趨勢線", edge: "long", weight: 1 }, { text: "在趨勢線上方", edge: "long", weight: 1 }, { text: "跌破趨勢線", edge: "short", weight: 1 }
-          ]},
-          { id: "s_ma_support", label: "移動平均線支持 (20/50MA)", options: [
-            { text: "價格在MA上方且靠近", edge: "long", weight: 1 }, { text: "價格在MA上方但較遠", edge: "neutral", weight: 1 }, { text: "價格跌破MA", edge: "short", weight: 1 }
-          ]},
-          { id: "s_prev_resist_support", label: "前阻力變支持位", options: [
-            { text: "是，有明顯轉換", edge: "long", weight: 1 }, { text: "不明顯", edge: "neutral", weight: 1 }, { text: "沒有", edge: "neutral", weight: 1 }
-          ]},
-          { id: "s_vol_up", label: "上升時成交量 (突破/上漲)", options: [
-            { text: "帶量上漲 (>50MAVOL)", edge: "long", weight: 1 }, { text: "量能一般", edge: "neutral", weight: 1 }, { text: "量能不足", edge: "short", weight: 1 }
-          ]},
-          { id: "s_vol_down", label: "拉回時成交量", options: [
-            { text: "低量拉回 (惜售)", edge: "long", weight: 1 }, { text: "帶量下跌 (派發)", edge: "short", weight: 1 }
-          ]},
-          { id: "s_gap", label: "裂口跳空", options: [
-            { text: "上升裂口", edge: "long", weight: 1 }, { text: "無裂口", edge: "neutral", weight: 1 }, { text: "出現向下裂口", edge: "short", weight: 1 }
-          ]},
-          { id: "s_shakeout", label: "洗盤 / 假突破", options: [
-            { text: "無洗盤跡象", edge: "neutral", weight: 1 }, { text: "大陰燭小成交量 (洗盤)", edge: "long", weight: 1 }, { text: "大陰燭大成交量 (危險)", edge: "short", weight: 1 }
-          ]},
-          { id: "s_pattern", label: "圖表型態", options: [
-            { text: "VCP", edge: "long", weight: 1 }, { text: "High tight flag", edge: "long", weight: 1 }, { text: "Cup with handle", edge: "long", weight: 1 }, { text: "Double bottom", edge: "long", weight: 1 }, { text: "Pocket pivot", edge: "long", weight: 1 }, { text: "Head and shoulder", edge: "short", weight: 1 }, { text: "Climax run", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }
-          ]},
-          { id: "s_candlestick", label: "陰陽燭形態", options: [
-            { text: "破腳穿頭", edge: "long", weight: 1 }, { text: "錘頭", edge: "long", weight: 1 }, { text: "早晨之星", edge: "long", weight: 1 }, { text: "穿頭破腳", edge: "short", weight: 1 }, { text: "倒轉錘頭", edge: "short", weight: 1 }, { text: "黃昏之星", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }
-          ]},
-          { id: "s_macd", label: "MACD 信號 (權重 0.5)", options: [
-            { text: "上升 crossover", edge: "long", weight: 0.5 }, { text: "向下 crossover", edge: "short", weight: 0.5 }, { text: "糾結中", edge: "neutral", weight: 0.5 }
-          ]},
-          { id: "s_rsi", label: "RSI 位置 (權重 0.5)", options: [
-            { text: "RSI > 50 (強勢)", edge: "long", weight: 0.5 }, { text: "RSI 30-50", edge: "neutral", weight: 0.5 }, { text: "RSI < 30 (超賣)", edge: "long", weight: 0.5 }
-          ]},
-          { id: "s_kdj", label: "Stochastic (KDJ) 信號 (權重 0.5)", options: [
-            { text: "低檔黃金交叉", edge: "long", weight: 0.5 }, { text: "高檔死亡交叉", edge: "short", weight: 0.5 }, { text: "Not given", edge: "neutral", weight: 0.5 }
-          ]}
-        ]
-      }
+      { category: "大盤指數 (Market)", items: [
+        { id: "m_trend", label: "大盤指數趨勢", options: [
+          { text: "強勢上升", edge: "long", weight: 1 }, 
+          { text: "弱勢上升", edge: "long", weight: 1 }, 
+          { text: "盤整區間", edge: "neutral", weight: 1 }, 
+          { text: "弱勢下降", edge: "short", weight: 1 }, 
+          { text: "強勁下降", edge: "short", weight: 1 }
+        ]},
+        { id: "m_dist", label: "出貨日", options: [{ text: "無 / 很少", edge: "long", weight: 1 }, { text: "有顯著出貨日", edge: "short", weight: 1 }] },
+        { id: "m_breadth50", label: "市寬 - 50天線以上比例", options: [{ text: ">70%", edge: "long", weight: 1 }, { text: "50-70%", edge: "neutral", weight: 1 }, { text: "<50%", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] },
+        { id: "m_breadth200", label: "市寬 - 200天線以上比例", options: [{ text: ">60%", edge: "long", weight: 1 }, { text: "40-60%", edge: "neutral", weight: 1 }, { text: "<40%", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] },
+        { id: "m_other_sell", label: "其他賣出訊號", options: [{ text: "市寬背馳", edge: "short", weight: 1 }, { text: "突兀走勢", edge: "short", weight: 1 }, { text: "急漲性走勢", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] }
+      ]},
+      { category: "所屬板塊 (Sector)", items: [
+        { id: "e_rs", label: "板塊相對強度", options: [{ text: "★★★★★ (強)", edge: "long", weight: 1 }, { text: "★★★★☆ (中上)", edge: "long", weight: 1 }, { text: "★★★☆☆ (中等)", edge: "neutral", weight: 1 }, { text: "★★☆☆☆ (弱)", edge: "short", weight: 1 }] },
+        { id: "e_trend", label: "所屬板塊趨勢", options: [{ text: "上升趨勢", edge: "long", weight: 1 }, { text: "橫行區間", edge: "long", weight: 1 }, { text: "下跌趨勢", edge: "short", weight: 1 }] },
+        { id: "e_peer_rank", label: "個股相對同行排名", options: [{ text: "前 25%", edge: "long", weight: 1 }, { text: "25%-50%", edge: "neutral", weight: 1 }, { text: "後 50%", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] }
+      ]},
+      { category: "個股趨勢 (Trend)", items: [
+        { id: "t_rs", label: "個股相對強度", options: [{ text: "高於 80", edge: "long", weight: 1 }, { text: "50 - 80", edge: "neutral", weight: 1 }, { text: "低於 50", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] },
+        { id: "t_long_trend", label: "長期趨勢 (週線)", options: [{ text: "上升趨勢", edge: "long", weight: 1 }, { text: "橫行區間", edge: "neutral", weight: 1 }, { text: "下跌趨勢", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] },
+        { id: "t_mid_trend", label: "中/短期趨勢 (日線)", options: [{ text: "上升趨勢", edge: "long", weight: 1 }, { text: "盤整", edge: "neutral", weight: 1 }, { text: "下跌趨勢", edge: "short", weight: 1 }] }
+      ]},
+      { category: "個股交易型態 (Structure/Vol)", items: [
+        { id: "s_daily_support", label: "日線圖 - 重要支持位", dynamic: true, type: "support" },
+        { id: "s_daily_resist", label: "日線圖 - 阻力位", dynamic: true, type: "resist" },
+        { id: "s_weekly_support", label: "週線圖 - 支持位", dynamic: true, type: "support" },
+        { id: "s_weekly_resist", label: "週線圖 - 阻力位", dynamic: true, type: "resist" },
+        { id: "s_trendline", label: "趨勢線支持", dynamic: true, type: "support" },
+        { id: "s_ma_support", label: "移動平均線 (10/20/50/200MA)", dynamic: true, type: "ma" },
+        { id: "s_prev_resist_support", label: "前阻力變支持位", dynamic: true, type: "support" },
+        { id: "s_vol_up", label: "上升時成交量", options: [{ text: "帶量上漲", edge: "long", weight: 1 }, { text: "量能一般", edge: "neutral", weight: 1 }, { text: "量能不足", edge: "short", weight: 1 }] },
+        { id: "s_vol_down", label: "拉回時成交量", options: [{ text: "低量拉回", edge: "long", weight: 1 }, { text: "帶量下跌", edge: "short", weight: 1 }] },
+        { id: "s_gap", label: "裂口跳空", options: [{ text: "上升裂口", edge: "long", weight: 1 }, { text: "無裂口", edge: "neutral", weight: 1 }, { text: "向下裂口", edge: "short", weight: 1 }] },
+        { id: "s_shakeout", label: "洗盤 / 假突破", options: [{ text: "無洗盤", edge: "neutral", weight: 1 }, { text: "洗盤 (小量)", edge: "long", weight: 1 }, { text: "危險 (大量)", edge: "short", weight: 1 }] },
+        { id: "s_pattern", label: "圖表型態", options: [{ text: "VCP", edge: "long", weight: 1 }, { text: "High tight flag", edge: "long", weight: 1 }, { text: "Cup with handle", edge: "long", weight: 1 }, { text: "Double bottom", edge: "long", weight: 1 }, { text: "Pocket pivot", edge: "long", weight: 1 }, { text: "Head & shoulder", edge: "short", weight: 1 }, { text: "Climax run", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] },
+        { id: "s_candlestick", label: "陰陽燭形態", options: [{ text: "破腳穿頭", edge: "long", weight: 1 }, { text: "錘頭", edge: "long", weight: 1 }, { text: "早晨之星", edge: "long", weight: 1 }, { text: "穿頭破腳", edge: "short", weight: 1 }, { text: "倒轉錘頭", edge: "short", weight: 1 }, { text: "黃昏之星", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] },
+        { id: "s_macd", label: "MACD (權重0.5)", options: [{ text: "上升 Crossover", edge: "long", weight: 0.5 }, { text: "向下 Crossover", edge: "short", weight: 0.5 }, { text: "糾結中", edge: "neutral", weight: 0.5 }] },
+        { id: "s_rsi", label: "RSI (權重0.5)", options: [{ text: ">50 強勢", edge: "long", weight: 0.5 }, { text: "30-50", edge: "neutral", weight: 0.5 }, { text: "<30 超賣", edge: "long", weight: 0.5 }] },
+        { id: "s_kdj", label: "Stochastic (權重0.5)", options: [{ text: "低檔黃金交叉", edge: "long", weight: 0.5 }, { text: "高檔死亡交叉", edge: "short", weight: 0.5 }, { text: "Not given", edge: "neutral", weight: 0.5 }] }
+      ]}
     ];
 
     const calculateEdges = (answers) => {
       let long = 0, short = 0;
       METS_CHECKLIST.forEach(cat => cat.items.forEach(item => {
         const ans = answers[item.id];
-        if (ans) { const w = ans.weight || 1; if (ans.edge === 'long') long += w; if (ans.edge === 'short') short += w; }
+        if (ans && ans.edge) { const w = ans.weight || 1; if (ans.edge === 'long') long += w; if (ans.edge === 'short') short += w; }
       }));
       return { long: Math.round(long * 10) / 10, short: Math.round(short * 10) / 10 };
     };
-    const calculateCategoryEdges = (answers) => {
-      const res = {};
-      METS_CHECKLIST.forEach(cat => {
-        let l = 0, s = 0, t = 0;
-        cat.items.forEach(item => {
-          const ans = answers[item.id];
-          if (ans) { t++; const w = ans.weight || 1; if (ans.edge === 'long') l += w; if (ans.edge === 'short') s += w; }
-        });
-        res[cat.category] = { long: Math.round(l * 10) / 10, short: Math.round(s * 10) / 10, total: t };
-      });
-      return res;
-    };
-    const formatDateFull = (ds) => {
-      if (!ds) return '--'; const d = new Date(ds + 'T00:00:00');
-      const wd = ['日','一','二','三','四','五','六']; return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 (週${wd[d.getDay()]})`;
-    };
+
     const formatDateShort = (ds) => { if (!ds) return '--'; const p = ds.split('-'); return p.length===3?`${p[1]}/${p[2]}`:ds; };
-    const calcHoldingDays = (b,s) => { if(!b||!s) return 0; const diff = new Date(s+'T00:00:00')-new Date(b+'T00:00:00'); return Math.max(1,Math.floor(diff/86400000)); };
-    const calcPnL = (bp,sp) => { if(!bp||bp===0||!sp) return 0; return ((sp-bp)/bp)*100; };
+    const calcHoldingDays = (b, s) => { if(!b || !s) return 0; return Math.max(1, Math.floor((new Date(s+'T00:00:00') - new Date(b+'T00:00:00')) / 86400000)); };
+    const calcPnL = (bp, sp) => { if(!bp || bp===0 || !sp) return 0; return ((sp-bp)/bp)*100; };
+    
+    const getSupportEdge = (price, buyPrice) => {
+      if (!buyPrice || buyPrice <= 0 || !price) return null;
+      const pct = ((buyPrice - price) / buyPrice) * 100;
+      if (pct < 0) return { text: `跌破 ${pct.toFixed(1)}%`, edge: "short", pct };
+      if (pct < 3) return { text: `很近 ${pct.toFixed(1)}%`, edge: "long", pct };
+      if (pct <= 5) return { text: `適中 ${pct.toFixed(1)}%`, edge: "neutral", pct };
+      return { text: `較遠 ${pct.toFixed(1)}%`, edge: "short", pct };
+    };
+    
+    const getResistEdge = (price, buyPrice) => {
+      if (!buyPrice || buyPrice <= 0 || !price) return null;
+      const pct = ((price - buyPrice) / buyPrice) * 100;
+      if (pct < 0) return { text: `已突破 ${pct.toFixed(1)}%`, edge: "short", pct };
+      if (pct > 5) return { text: `較遠 ${pct.toFixed(1)}%`, edge: "long", pct };
+      if (pct >= 3) return { text: `適中 ${pct.toFixed(1)}%`, edge: "neutral", pct };
+      return { text: `很近 ${pct.toFixed(1)}%`, edge: "short", pct };
+    };
 
     const Icons = {
       Plus: (s=24)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
       ArrowLeft: (s=24)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
-      CheckCircle: (s=24)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
-      TrendingUp: (s=20)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 18 8.5 10.5 13.5 15.5 23 6"/><polyline points="17 6 23 6 23 12"/></svg>,
-      Trash: (s=18)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
-      ChevronRight: (s=18)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
-      Calendar: (s=14)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-      Target: (s=18)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-      Edit: (s=16)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+      ChevronDown: (s=16)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+      ChevronUp: (s=16)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>,
+      ChevronRight: (s=20)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+      TrendingUp: (s=24)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 18 8.5 10.5 13.5 15.5 23 6"/><polyline points="17 6 23 6 23 12"/></svg>,
+      Trash: (s=16)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
+      EmptyFolder: (s=40)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
     };
 
-    function Toast({ message, type='success', onClose }) {
-      useEffect(()=>{const t=setTimeout(onClose,2000); return ()=>clearTimeout(t);},[onClose]);
-      const bg = type==='success'?'bg-emerald-500':type==='error'?'bg-rose-500':'bg-indigo-500';
-      return <div className={`toast-in fixed top-6 left-1/2 transform -translate-x-1/2 z-50 ${bg} text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 font-semibold text-sm`}>{type==='success'?<Icons.CheckCircle size={18}/>:type==='error'?<Icons.Trash size={18}/>:null}<span>{message}</span></div>;
+    function Modal({ isOpen, onClose, title, children, actions }) {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl animate-fade-in-up" onClick={e => e.stopPropagation()}>
+            {title && <h3 className="text-lg font-extrabold text-gray-800 mb-2">{title}</h3>}
+            <div className="text-xs text-gray-600 font-medium leading-relaxed">{children}</div>
+            {actions && <div className="flex justify-end gap-3 mt-5">{actions}</div>}
+          </div>
+        </div>
+      );
     }
 
     function App() {
-      const [trades, setTrades] = useState(()=>{try{const s=localStorage.getItem('mets_trades_v10'); return s?JSON.parse(s):[];}catch(e){return[];}});
+      const [trades, setTrades] = useState(() => { try { return JSON.parse(localStorage.getItem('mets_trades_v23')) || []; } catch { return []; } });
       const [view, setView] = useState('dashboard');
       const [currentTrade, setCurrentTrade] = useState(null);
-      const [toast, setToast] = useState(null);
-      useEffect(()=>{try{localStorage.setItem('mets_trades_v10',JSON.stringify(trades));}catch(e){}},[trades]);
-      const showToast = useCallback((msg,type='success')=>setToast({message:msg,type,key:Date.now()}),[]);
-      const goTo = useCallback((v,trade=null)=>{setCurrentTrade(trade);setView(v);window.scrollTo({top:0,behavior:'smooth'});},[]);
-      const saveNewTrade = useCallback((data)=>{
-        const nt = {...data,id:Date.now().toString(),status:'active',createdAt:new Date().toISOString()};
-        setTrades(prev=>[nt,...prev]); showToast('✅ 交易計劃已儲存'); goTo('dashboard');
-      },[goTo,showToast]);
-      const completeTrade = useCallback((tid,review)=>{
-        setTrades(prev=>prev.map(t=>t.id===tid?{...t,...review,status:'completed'}:t)); showToast('📊 檢討報告已生成'); goTo('dashboard');
-      },[goTo,showToast]);
-      const deleteTrade = useCallback((tid)=>{if(window.confirm('確定刪除？')){setTrades(prev=>prev.filter(t=>t.id!==tid));showToast('🗑️ 已刪除');goTo('dashboard');}},[goTo,showToast]);
+      useEffect(() => { localStorage.setItem('mets_trades_v23', JSON.stringify(trades)); }, [trades]);
+      
+      const goTo = (v, t = null) => { setCurrentTrade(t); setView(v); window.scrollTo(0, 0); };
+      
+      const saveNewTrade = (data, status = 'watchlist') => {
+        const nt = { ...data, id: Date.now().toString(), status, createdAt: new Date().toISOString() };
+        setTrades(prev => [nt, ...prev]); goTo('dashboard');
+      };
+      const buyFromWatchlist = (trade, actualBuyPrice) => {
+        setTrades(prev => prev.map(t => t.id === trade.id ? { ...t, status: 'active', buyDate: new Date().toISOString().split('T')[0], actualBuyPrice: actualBuyPrice || t.targetBuyPrice } : t));
+      };
+      const completeTrade = (tid, review) => {
+        setTrades(prev => prev.map(t => t.id === tid ? { ...t, ...review, status: 'completed' } : t)); goTo('dashboard');
+      };
+      const deleteTrade = (tid) => { setTrades(prev => prev.filter(t => t.id !== tid)); };
 
       return (
-        <div className="app-container min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex flex-col relative shadow-2xl overflow-hidden">
-          {toast && <Toast key={toast.key} message={toast.message} type={toast.type} onClose={()=>setToast(null)}/>}
-          {view==='dashboard' && <Dashboard trades={trades} onNew={()=>goTo('new_trade')} onSelect={(t)=>t.status==='completed'?goTo('report',t):goTo('review_trade',t)} onDelete={deleteTrade}/>}
-          {view==='new_trade' && <NewTradeForm onSave={saveNewTrade} onCancel={()=>goTo('dashboard')} calculateEdges={calculateEdges}/>}
-          {view==='review_trade' && currentTrade && <ReviewTradeForm trade={currentTrade} onSave={(d)=>completeTrade(currentTrade.id,d)} onCancel={()=>goTo('dashboard')}/>}
-          {view==='report' && currentTrade && <ReportView trade={currentTrade} onBack={()=>goTo('dashboard')} onDelete={()=>deleteTrade(currentTrade.id)}/>}
+        <div className="app-container min-h-screen bg-gray-50 shadow-2xl relative">
+          {view === 'dashboard' && <Dashboard trades={trades} onNew={() => goTo('new_trade')} onSelect={t => goTo(t.status === 'completed' ? 'report' : 'review_trade', t)} onDelete={deleteTrade} onBuy={buyFromWatchlist} />}
+          {view === 'new_trade' && <NewTradeForm onSave={saveNewTrade} onCancel={() => goTo('dashboard')} />}
+          {view === 'review_trade' && currentTrade && <ReviewTradeForm trade={currentTrade} onSave={d => completeTrade(currentTrade.id, d)} onCancel={() => goTo('dashboard')} />}
+          {view === 'report' && currentTrade && <ReportView trade={currentTrade} onBack={() => goTo('dashboard')} onDelete={() => { deleteTrade(currentTrade.id); goTo('dashboard'); }} />}
         </div>
       );
     }
 
-    function Dashboard({ trades, onNew, onSelect, onDelete }) {
-      const active = trades.filter(t=>t.status==='active');
-      const completed = trades.filter(t=>t.status==='completed');
+    function Dashboard({ trades, onNew, onSelect, onDelete, onBuy }) {
+      const [tab, setTab] = useState('watchlist');
+      const watchlist = trades.filter(t => t.status === 'watchlist');
+      const active = trades.filter(t => t.status === 'active');
+      const completed = trades.filter(t => t.status === 'completed');
       const totalComp = completed.length;
-      const profitCount = completed.filter(t=>t.pnlPercent>0).length;
-      const winRate = totalComp>0?((profitCount/totalComp)*100).toFixed(1):'--';
-      const totalPnL = completed.reduce((s,t)=>s+(t.pnlPercent||0),0);
-      const avgPnL = totalComp>0?(totalPnL/totalComp).toFixed(2):'--';
+      const winRate = totalComp > 0 ? ((completed.filter(t => t.pnlPercent > 0).length / totalComp) * 100).toFixed(1) : '--';
+      const avgPnL = totalComp > 0 ? (completed.reduce((s, t) => s + (t.pnlPercent || 0), 0) / totalComp).toFixed(2) : '--';
+      const [modal, setModal] = useState({ isOpen: false, type: null, trade: null });
+
+      const openDeleteModal = (t, e) => { e.stopPropagation(); setModal({ isOpen: true, type: 'delete', trade: t }); };
+      const openBuyModal = (t, e) => { e.stopPropagation(); setModal({ isOpen: true, type: 'buy', trade: t }); };
+      const closeModal = () => setModal({ isOpen: false });
+      
+      const handleBuyConfirm = (price) => {
+        if (modal.trade && price && !isNaN(parseFloat(price)) && parseFloat(price) > 0) {
+          onBuy(modal.trade, parseFloat(price));
+        }
+        closeModal();
+      };
+
+      const renderEmptyState = (message) => (
+        <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in-up">
+          <Icons.EmptyFolder size={44} />
+          <p className="text-gray-400 text-xs font-bold mt-3">{message}</p>
+        </div>
+      );
 
       return (
         <div className="flex flex-col min-h-screen">
-          <header className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white px-6 pt-10 pb-10 rounded-b-[3rem] shadow-xl safe-bottom">
-            <div className="flex justify-between items-center mb-6">
-              <div><h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">M.E.T.S.</h1><p className="text-indigo-200 text-sm mt-1">交易檢討系統</p></div>
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-inner"><Icons.Target size={28}/></div>
+          <header className="bg-gradient-to-r from-purple-700 to-indigo-600 text-white px-5 pt-6 pb-6 rounded-b-[2.5rem] shadow-lg safe-bottom">
+            <h1 className="text-2xl font-black tracking-tight">M.E.T.S. 股票交易檢討</h1>
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5"><p className="text-xl font-extrabold">{totalComp}</p><p className="text-[10px] text-white/80 mt-0.5">總交易</p></div>
+              <div className="bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5"><p className={`text-xl font-extrabold ${parseFloat(winRate) >= 50 ? 'text-emerald-300' : 'text-rose-300'}`}>{winRate}%</p><p className="text-[10px] text-white/80 mt-0.5">勝率</p></div>
+              <div className="bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5"><p className={`text-xl font-extrabold ${parseFloat(avgPnL) >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>{parseFloat(avgPnL) >= 0 ? '+' : ''}{avgPnL}%</p><p className="text-[10px] text-white/80 mt-0.5">平均盈虧</p></div>
             </div>
-            {totalComp>0?(
-              <div className="grid grid-cols-3 gap-4 mt-4">
-                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm text-center"><p className="text-2xl md:text-3xl font-extrabold">{totalComp}</p><p className="text-xs text-indigo-200 uppercase tracking-wider mt-1">總交易</p></div>
-                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm text-center"><p className={`text-2xl md:text-3xl font-extrabold ${parseFloat(winRate)>=50?'text-emerald-300':'text-rose-300'}`}>{winRate}{winRate!=='--'?'%':''}</p><p className="text-xs text-indigo-200 uppercase tracking-wider mt-1">勝率</p></div>
-                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm text-center"><p className={`text-2xl md:text-3xl font-extrabold ${parseFloat(avgPnL)>=0?'text-emerald-300':'text-rose-300'}`}>{parseFloat(avgPnL)>=0?'+':''}{avgPnL}{avgPnL!=='--'?'%':''}</p><p className="text-xs text-indigo-200 uppercase tracking-wider mt-1">平均盈虧</p></div>
-              </div>
-            ):<div className="mt-4 text-center py-5 bg-white/10 rounded-2xl text-white/80 text-base">尚無交易記錄，開始新增一筆吧！</div>}
           </header>
-          <main className="flex-1 overflow-y-auto px-5 md:px-8 py-8 space-y-8 hide-scrollbar">
-            <section>
-              <div className="flex items-center justify-between mb-5"><h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>持有中 / 待檢討</h2><span className="badge bg-indigo-100 text-indigo-700">{active.length}</span></div>
-              {active.length===0?(
-                <div className="bg-white rounded-2xl p-8 text-center card-shadow-sm border border-slate-100"><div className="w-16 h-16 mx-auto mb-4 bg-slate-50 rounded-full flex items-center justify-center"><Icons.Calendar size={24} className="text-slate-300"/></div><p className="text-slate-500 text-base font-medium">目前沒有進行中的交易計劃</p></div>
-              ):(
-                <div className="space-y-4">
-                  {active.map((t,idx)=>(
-                    <div key={t.id} className="bg-white rounded-2xl card-shadow-sm border border-slate-100 overflow-hidden animate-fade-in-up" style={{animationDelay:`${idx*0.06}s`}}>
-                      <div onClick={()=>onSelect(t)} className="p-5 flex items-center justify-between cursor-pointer">
-                        <div className="flex-1 min-w-0"><div className="flex items-center gap-3 mb-1"><span className="font-extrabold text-2xl text-slate-900 truncate">{t.ticker}</span><span className="badge bg-indigo-50 text-indigo-700 border border-indigo-100">{t.strategy}</span></div><div className="flex flex-col gap-1.5 text-sm text-slate-500 mt-3"><div className="flex items-center gap-2"><Icons.Calendar size={14}/><span>{formatDateFull(t.buyDate)}</span></div><div className="flex items-center gap-2"><Icons.Target size={14}/><span>計劃買入價 <strong className="text-slate-800">${t.targetBuyPrice?.toFixed(2)}</strong></span></div></div><div className="flex gap-3 mt-4"><span className="badge bg-emerald-50 text-emerald-700 border border-emerald-100">📈 Long {t.edges?.long??0}</span><span className="badge bg-rose-50 text-rose-700 border border-rose-100">📉 Short {t.edges?.short??0}</span></div></div>
-                        <button onClick={(e)=>{e.stopPropagation();onSelect(t);}} className="ml-4 text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold btn-press shadow-sm whitespace-nowrap transition-colors">檢討賣出</button>
-                      </div>
-                      <div className="border-t border-slate-50 px-5 py-2.5 flex justify-end bg-slate-50/80"><button onClick={(e)=>{e.stopPropagation();onDelete(t.id);}} className="text-xs text-slate-400 hover:text-rose-500 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"><Icons.Trash size={14}/>刪除</button></div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-            <section>
-              <div className="flex items-center justify-between mb-5"><h2 className="text-sm font-bold uppercase tracking-widest text-slate-500">📋 歷史檢討報告</h2><span className="badge bg-slate-200 text-slate-600">{completed.length}</span></div>
-              {completed.length===0?(
-                <div className="bg-white rounded-2xl p-8 text-center card-shadow-sm border border-slate-100"><div className="w-16 h-16 mx-auto mb-4 bg-slate-50 rounded-full flex items-center justify-center"><Icons.TrendingUp size={24} className="text-slate-300"/></div><p className="text-slate-500 text-base font-medium">尚無完成的交易記錄</p></div>
-              ):(
-                <div className="space-y-4">
-                  {completed.map((t,idx)=>{const isProfit=t.pnlPercent>=0; return (
-                    <div key={t.id} onClick={()=>onSelect(t)} className="bg-white rounded-2xl card-shadow-sm border border-slate-100 p-5 flex items-center justify-between animate-fade-in-up" style={{animationDelay:`${idx*0.06}s`}}>
-                      <div className="flex-1 min-w-0"><div className="flex items-center gap-3 mb-1"><span className="font-extrabold text-2xl text-slate-900 truncate">{t.ticker}</span><span className={`badge ${isProfit?'bg-emerald-50 text-emerald-700 border border-emerald-100':'bg-rose-50 text-rose-700 border border-rose-100'}`}>{isProfit?'📈 獲利':'📉 虧損'}</span></div><div className="text-sm text-slate-500 mt-3 flex items-center gap-2"><Icons.Calendar size={14}/><span>{formatDateShort(t.buyDate)} → {formatDateShort(t.sellDate)}</span><span className="text-slate-300">|</span><span>持倉 {t.holdingDays} 天</span></div><div className="text-xs text-slate-400 mt-1.5 flex items-center gap-2"><Icons.Edit size={14}/><span>買 ${t.actualBuyPrice?.toFixed(2)} · 賣 ${t.sellPrice?.toFixed(2)}</span></div></div>
-                      <div className="flex items-center gap-3 ml-4"><div className={`text-3xl font-extrabold ${isProfit?'gradient-text-profit':'gradient-text-loss'}`}>{isProfit?'+':''}{t.pnlPercent.toFixed(2)}%</div><Icons.ChevronRight size={20} className="text-slate-300"/></div>
-                    </div>
-                  );})}
-                </div>
-              )}
-            </section>
-            <div className="h-4"></div>
-          </main>
-          <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-slate-100 via-slate-100 to-transparent px-5 md:px-8 pt-3 pb-8 safe-bottom">
-            <button onClick={onNew} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl py-5 flex items-center justify-center font-extrabold text-xl shadow-lg shadow-indigo-200/50 btn-press active:from-indigo-700 active:to-purple-700 transition-all"><span className="mr-3"><Icons.Plus size={28}/></span>新增交易前檢視</button>
+          
+          <div className="flex bg-white border-b border-gray-100 px-2 sticky top-0 z-10">
+            {[{ key: 'watchlist', label: '📋 觀察名單', count: watchlist.length }, { key: 'active', label: '📈 持有中', count: active.length }, { key: 'history', label: '📊 歷史報告', count: completed.length }].map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)} className={`flex-1 py-3 text-xs font-bold text-center transition-colors ${tab === t.key ? 'tab-active' : 'tab-inactive hover:text-gray-600'}`}>{t.label} ({t.count})</button>
+            ))}
           </div>
+          
+          <main className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-24">
+            {tab === 'watchlist' && (watchlist.length === 0 ? renderEmptyState('暫無觀察項目，點擊下方按鈕規劃新計畫') : watchlist.map(t => (
+              <div key={t.id} onClick={() => onSelect(t)} className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 animate-fade-in-up cursor-pointer hover:border-purple-200 transition-colors">
+                <div className="flex justify-between items-start mb-2">
+                  <div><span className="font-extrabold text-xl text-gray-800 tracking-tight">{t.ticker}</span><span className="badge bg-indigo-50 text-indigo-700 ml-2 border border-indigo-100">{t.strategy}</span></div>
+                  <button onClick={(e) => openDeleteModal(t, e)} className="text-gray-300 hover:text-rose-500 p-1"><Icons.Trash size={14}/></button>
+                </div>
+                <div className="data-row"><span className="data-label">計劃買入價</span><span className="data-value">${t.targetBuyPrice?.toFixed(2)}</span></div>
+                <div className="data-row"><span className="data-label">止損 / 目標價</span><span className="data-value">${t.stopLossPrice?.toFixed(2) || '--'} / ${t.targetPrice?.toFixed(2) || '--'}</span></div>
+                <div className="data-row"><span className="data-label">風險 / 報酬比 (R/R)</span><span className="data-value">{t.riskPercent || '--'}% / {t.rewardPercent || '--'}% ({t.rrRatio || '--'})</span></div>
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                  <div className="flex gap-2">
+                    <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-100">L: {t.edges?.long??0}</span>
+                    <span className="badge bg-rose-50 text-rose-700 border border-rose-100">S: {t.edges?.short??0}</span>
+                    {t.maxShares && <span className="badge bg-indigo-50 text-indigo-700 border border-indigo-100">{t.maxShares}股</span>}
+                  </div>
+                  <button onClick={(e) => openBuyModal(t, e)} className="bg-indigo-600 text-white px-5 py-2 rounded-xl text-xs font-bold btn-press shadow-sm">確認買入</button>
+                </div>
+              </div>
+            )))}
+            {tab === 'active' && (active.length === 0 ? renderEmptyState('暫無持有項目') : active.map(t => (
+              <div key={t.id} onClick={() => onSelect(t)} className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 flex justify-between items-center animate-fade-in-up cursor-pointer hover:border-purple-200 transition-colors">
+                <div>
+                  <div className="flex items-center gap-2"><span className="font-extrabold text-xl text-gray-800 tracking-tight">{t.ticker}</span><span className="badge bg-indigo-50 text-indigo-700 border border-indigo-100">{t.strategy}</span></div>
+                  <div className="text-[10px] text-gray-400 font-semibold mt-1">📅 {formatDateShort(t.buyDate)} 成本: <strong className="text-gray-700">${t.actualBuyPrice?.toFixed(2) || t.targetBuyPrice?.toFixed(2)}</strong></div>
+                  <div className="flex gap-1.5 mt-1.5"><span className="badge bg-emerald-50 text-emerald-700">L: {t.edges?.long??0}</span><span className="badge bg-rose-50 text-rose-700">S: {t.edges?.short??0}</span></div>
+                </div>
+                <button className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold btn-press">檢討賣出</button>
+              </div>
+            )))}
+            {tab === 'history' && (completed.length === 0 ? renderEmptyState('暫無歷史報告，完成買賣檢討後即可生成') : completed.map(t => {
+              const isProfit = t.pnlPercent >= 0;
+              return (
+                <div key={t.id} onClick={() => onSelect(t)} className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer animate-fade-in-up hover:border-purple-200 transition-colors">
+                  <div>
+                    <div className="flex items-center gap-2"><span className="font-extrabold text-xl text-gray-800 tracking-tight">{t.ticker}</span><span className={`badge ${isProfit ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{isProfit ? '📈 獲利' : '📉 虧損'}</span></div>
+                    <p className="text-[10px] text-gray-400 font-semibold mt-1">持倉 {t.holdingDays}天 | {formatDateShort(t.buyDate)} ➜ {formatDateShort(t.sellDate)}</p>
+                  </div>
+                  <p className={`text-xl font-black ${isProfit ? 'gradient-text-profit' : 'gradient-text-loss'}`}>{isProfit ? '+' : ''}{t.pnlPercent.toFixed(2)}%</p>
+                </div>
+              );
+            }))}
+          </main>
+          
+          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-50 via-gray-50 p-4 safe-bottom">
+            <div className="app-container relative">
+              <button onClick={onNew} className="w-full bg-gradient-to-r from-purple-700 to-indigo-600 text-white py-4 rounded-2xl font-black text-base shadow-lg btn-press flex items-center justify-center gap-2">
+                <Icons.Plus size={20} /> 新增交易前檢視
+              </button>
+            </div>
+          </div>
+          
+          <Modal isOpen={modal.isOpen && modal.type === 'delete'} onClose={closeModal} title="確認刪除項目" actions={<><button onClick={closeModal} className="px-4 py-2 text-xs text-gray-500 font-bold">取消</button><button onClick={() => { onDelete(modal.trade.id); closeModal(); }} className="px-4 py-2 bg-rose-500 text-white rounded-xl font-bold text-xs">確定刪除</button></>}>確定要將 {modal.trade?.ticker} 從清單中完全移除嗎？</Modal>
+          <Modal isOpen={modal.isOpen && modal.type === 'buy'} onClose={closeModal} title={`買入紀錄：${modal.trade?.ticker}`} actions={<><button onClick={closeModal} className="px-4 py-2 text-xs text-gray-500 font-bold">取消</button><button onClick={() => { const input = document.getElementById('buy-price-input'); if (input) handleBuyConfirm(input.value); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs">確認交易</button></>}>
+            <div className="space-y-3 pt-1"><p className="text-xs font-semibold text-gray-500">計畫進場價: <strong className="text-gray-800">${modal.trade?.targetBuyPrice?.toFixed(2)}</strong></p><label className="block text-xs font-bold text-gray-700">請輸入實際買入成交價：</label><input id="buy-price-input" type="number" step="0.01" defaultValue={modal.trade?.targetBuyPrice?.toFixed(2)} className="w-full p-3 border-2 border-indigo-100 rounded-xl text-lg font-bold text-indigo-700 text-center outline-none focus:border-indigo-500" placeholder="0.00" autoFocus /></div>
+          </Modal>
         </div>
       );
     }
 
-    function NewTradeForm({ onSave, onCancel, calculateEdges }) {
+    function NewTradeForm({ onSave, onCancel }) {
       const [ticker, setTicker] = useState('');
-      const [buyDate, setBuyDate] = useState(()=>new Date().toISOString().split('T')[0]);
+      const [buyDate, setBuyDate] = useState(new Date().toISOString().split('T')[0]);
       const [targetBuyPrice, setTargetBuyPrice] = useState('');
       const [strategy, setStrategy] = useState('LVP');
       const [answers, setAnswers] = useState({});
-      const [showValidation, setShowValidation] = useState(false);
       const [totalCapital, setTotalCapital] = useState('75000');
       const [stopLossPrice, setStopLossPrice] = useState('');
       const [targetPrice, setTargetPrice] = useState('');
+      const [priceInputs, setPriceInputs] = useState({
+        s_daily_support: '', s_daily_resist: '', s_weekly_support: '', s_weekly_resist: '',
+        s_trendline: '', s_prev_resist_support: '', s_ma_support: { ma10: '', ma20: '', ma50: '', ma200: '' }
+      });
+      const [accordionOpen, setAccordionOpen] = useState(false);
+      const [modal, setModal] = useState({ isOpen: false, message: '' });
 
-      const edges = calculateEdges(answers);
-      const categoryEdges = calculateCategoryEdges(answers);
-      const totalItems = METS_CHECKLIST.reduce((s,c)=>s+c.items.length,0);
-      const answeredItems = Object.keys(answers).length;
-      const completionPercent = Math.round((answeredItems/totalItems)*100);
-
-      const handleOptionSelect = (itemId, option) => setAnswers(prev=>({...prev,[itemId]:option}));
-
-      // 貨幣判斷與換算
+      const buyP = parseFloat(targetBuyPrice);
       const isUSStock = /^[A-Za-z.]+$/.test(ticker.trim());
       const capitalHKD = parseFloat(totalCapital) || 0;
       const effectiveCapital = isUSStock ? capitalHKD / 7.8 : capitalHKD;
-      const usdCapitalDisplay = isUSStock ? effectiveCapital : null;
 
-      const buyP = parseFloat(targetBuyPrice);
-      const stopP = parseFloat(stopLossPrice);
-      const targetP = parseFloat(targetPrice);
-      const riskPercent = buyP && stopP ? Math.abs(((buyP - stopP) / buyP) * 100).toFixed(2) : '--';
-      const rewardPercent = buyP && targetP ? Math.abs(((targetP - buyP) / buyP) * 100).toFixed(2) : '--';
-      const rrRatio = riskPercent !== '--' && rewardPercent !== '--' && parseFloat(riskPercent) > 0 ? (parseFloat(rewardPercent) / parseFloat(riskPercent)).toFixed(2) : '--';
+      // 自動加權與 Edge 計算
+      useEffect(() => {
+        if (!buyP || buyP <= 0) return;
+        const newDynamicAnswers = {};
+        METS_CHECKLIST.flatMap(cat => cat.items).filter(item => item.dynamic).forEach(item => {
+          if (item.id === 's_ma_support') {
+            const maValues = priceInputs.s_ma_support;
+            const edges = []; let longCount = 0, shortCount = 0;
+            Object.entries(maValues).forEach(([key, val]) => {
+              const price = parseFloat(val);
+              if (!isNaN(price) && price > 0) {
+                const edge = price <= buyP ? getSupportEdge(price, buyP) : getResistEdge(price, buyP);
+                if (edge) { edges.push({ key, price, ...edge }); if (edge.edge === 'long') longCount++; else if (edge.edge === 'short') shortCount++; }
+              }
+            });
+            newDynamicAnswers[item.id] = edges.length === 0 ? null : { edge: longCount >= shortCount ? 'long' : 'short', weight: 1, details: edges, text: `移動平均線支持` };
+          } else {
+            const price = parseFloat(priceInputs[item.id]);
+            if (isNaN(price) || price <= 0) { newDynamicAnswers[item.id] = null; return; }
+            const edgeObj = item.type === 'support' ? getSupportEdge(price, buyP) : getResistEdge(price, buyP);
+            if (edgeObj) newDynamicAnswers[item.id] = { ...edgeObj, weight: 1 };
+          }
+        });
+        setAnswers(prev => ({ ...prev, ...newDynamicAnswers }));
+      }, [priceInputs, buyP]);
 
-      // 基於有效資本計算可買股數
-      let maxShares = null;
-      let maxAmount = null;
-      if (buyP && stopP && effectiveCapital > 0 && stopP < buyP) {
-        const perShareLoss = buyP - stopP;
-        const maxLossAmount = effectiveCapital * 0.005;
-        maxShares = Math.floor(maxLossAmount / perShareLoss);
-        maxAmount = maxShares * buyP;
-      }
-
-      const handleSave = () => {
-        setShowValidation(true);
-        const errors = [];
-        if (!ticker.trim()) errors.push('請輸入股票代號');
-        if (!targetBuyPrice || isNaN(buyP) || buyP <= 0) errors.push('請輸入有效的預計買入價');
-        if (!buyDate) errors.push('請選擇日期');
-        if (errors.length > 0) { alert(errors.join('\n')); return; }
-        onSave({
-          ticker: ticker.trim().toUpperCase(),
-          buyDate,
-          targetBuyPrice: buyP,
-          strategy,
-          answers,
-          edges,
-          totalCapital: capitalHKD,
-          effectiveCapital,
-          isUSStock,
-          stopLossPrice: stopP || 0,
-          targetPrice: targetP || 0,
-          maxShares: maxShares || 0,
-          maxAmount: maxAmount || 0,
+      const currentEdges = useMemo(() => calculateEdges(answers), [answers]);
+      const handleOptionSelect = (itemId, option) => {
+        if (answers[itemId]?.text === option.text) {
+          const newAns = { ...answers }; delete newAns[itemId]; setAnswers(newAns);
+        } else {
+          setAnswers(prev => ({ ...prev, [itemId]: option }));
+        }
+      };
+      const handlePriceChange = (itemId, value, maKey = null) => {
+        setPriceInputs(prev => {
+          const ns = { ...prev };
+          if (maKey) ns.s_ma_support = { ...ns.s_ma_support, [maKey]: value };
+          else ns[itemId] = value;
+          return ns;
         });
       };
 
-      const strategyOptions = ["VCP","Pocket Pivot","Breakout play - BOL","High Volume Breakout - HVB","Pull back Recovery","Pull back Testing","Low Volume Pullback - LVP","Buyable gap-up","Shakeout play","Buy in support level"];
+      const riskPercent = buyP && stopLossPrice ? Math.abs(((buyP - parseFloat(stopLossPrice)) / buyP) * 100).toFixed(2) : '--';
+      const rewardPercent = buyP && targetPrice ? Math.abs(((parseFloat(targetPrice) - buyP) / buyP) * 100).toFixed(2) : '--';
+      const rrRatio = riskPercent !== '--' && rewardPercent !== '--' && parseFloat(riskPercent) > 0 ? (parseFloat(rewardPercent) / parseFloat(riskPercent)).toFixed(2) : '--';
+      let maxShares = null, maxAmount = null;
+      if (buyP && stopLossPrice && effectiveCapital > 0 && parseFloat(stopLossPrice) < buyP) {
+        const lossPerShare = buyP - parseFloat(stopLossPrice);
+        maxShares = Math.floor(effectiveCapital * 0.005 / lossPerShare); // 單筆曝險控制在總資產 0.5%
+        maxAmount = maxShares * buyP;
+      }
+
+      const handleSave = (status = 'watchlist') => {
+        if (!ticker.trim() || !buyP || buyP <= 0) {
+          setModal({ isOpen: true, message: '請務必填寫股票代號，以及合理的預計進場價格。' });
+          return;
+        }
+        onSave({
+          ticker: ticker.trim().toUpperCase(), buyDate, targetBuyPrice: buyP, strategy,
+          answers, edges: currentEdges, priceInputs,
+          totalCapital: capitalHKD, stopLossPrice: parseFloat(stopLossPrice) || 0, targetPrice: parseFloat(targetPrice) || 0,
+          isUSStock, effectiveCapital, maxShares, maxAmount, rrRatio, riskPercent, rewardPercent
+        }, status);
+      };
+
+      const strategyOptions = ["VCP", "Pocket Pivot", "BOL", "HVB", "Pull back Recovery", "Pull back Testing", "LVP", "Buyable gap-up", "Shakeout play", "Buy in support level"];
 
       return (
-        <div className="flex flex-col min-h-screen bg-white relative">
-          <header className="flex items-center p-5 border-b border-slate-100 bg-white/95 backdrop-blur-sm sticky top-0 z-20">
-            <button onClick={onCancel} className="p-2 -ml-2 text-slate-500 hover:text-slate-800 btn-press rounded-xl"><Icons.ArrowLeft/></button>
-            <h1 className="text-xl font-extrabold flex-1 text-center pr-8 text-slate-900">交易前 M.E.T.S 檢視</h1>
+        <div className="flex flex-col min-h-screen bg-gray-50">
+          <header className="flex items-center px-3 py-2.5 border-b bg-white sticky top-0 z-20">
+            <button onClick={onCancel} className="p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"><Icons.ArrowLeft size={22} /></button>
+            <h1 className="text-base font-extrabold flex-1 text-center pr-8 tracking-tight text-gray-800">建立 M.E.T.S 交易計畫</h1>
           </header>
-          <main className="flex-1 overflow-y-auto pb-48 hide-scrollbar">
-            <div className="p-5 md:p-8 bg-gradient-to-b from-indigo-50/60 to-white space-y-6 border-b border-slate-100">
-              <div className="flex items-center gap-2 mb-1"><span className="text-sm font-bold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full">📋 基本資訊</span></div>
-              <div className="grid grid-cols-2 gap-5">
-                <div><label className="block text-xs font-bold text-slate-600 mb-1.5">股票代號</label><input type="text" value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase())} className={`w-full p-4 border-2 rounded-2xl uppercase text-xl font-extrabold outline-none transition-all ${showValidation&&!ticker.trim()?'border-rose-300 bg-rose-50':'border-slate-200 focus:border-indigo-500'}`} placeholder="e.g. XLF"/></div>
-                <div><label className="block text-xs font-bold text-slate-600 mb-1.5">計劃日期</label><input type="date" value={buyDate} onChange={e=>setBuyDate(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-2xl text-lg font-semibold outline-none focus:border-indigo-500"/></div>
+          
+          <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-44">
+            {/* 基本數據與資金管理 */}
+            <div className="bg-white p-4 rounded-3xl border border-gray-100 card-shadow-sm space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">股票代號</label><input type="text" value={ticker} onChange={e => setTicker(e.target.value.toUpperCase())} className="w-full p-3 border rounded-xl text-lg font-black tracking-tight uppercase" placeholder="AAPL" /></div>
+                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">計畫日期</label><input type="date" value={buyDate} onChange={e => setBuyDate(e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold text-gray-600" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-5">
-                <div><label className="block text-xs font-bold text-slate-600 mb-1.5">預計買入價</label><input type="number" step="0.01" min="0.01" value={targetBuyPrice} onChange={e=>setTargetBuyPrice(e.target.value)} className={`w-full p-4 border-2 rounded-2xl text-lg font-bold outline-none ${showValidation&&(!targetBuyPrice||isNaN(buyP)||buyP<=0)?'border-rose-300 bg-rose-50':'border-slate-200 focus:border-indigo-500'}`} placeholder="0.00"/></div>
-                <div><label className="block text-xs font-bold text-slate-600 mb-1.5">買入策略</label><select value={strategy} onChange={e=>setStrategy(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-2xl text-lg font-semibold bg-white outline-none focus:border-indigo-500">{strategyOptions.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">計畫買入價</label><input type="number" step="0.01" value={targetBuyPrice} onChange={e => setTargetBuyPrice(e.target.value)} className="w-full p-3 border rounded-xl text-sm font-extrabold text-indigo-600" placeholder="0.00" /></div>
+                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">採用策略</label><select value={strategy} onChange={e => setStrategy(e.target.value)} className="w-full p-3 border rounded-xl bg-white text-xs font-bold text-gray-600">{strategyOptions.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
               </div>
-              <details className="bg-white border border-slate-200 rounded-2xl p-5 card-shadow-sm">
-                <summary className="font-bold text-base text-slate-700 cursor-pointer">💰 資金管理與風險控制 (選填)</summary>
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-500">總投資金額 (港元)</label>
-                    <input type="number" value={totalCapital} onChange={e=>setTotalCapital(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-base"/>
-                    {usdCapitalDisplay !== null && capitalHKD > 0 && (
-                      <div className="text-xs text-indigo-600 mt-1 font-medium">
-                        ≈ 美元 ${usdCapitalDisplay.toFixed(2)} (匯率 1 USD = 7.8 HKD)
+              
+              {/* 摺疊面板 */}
+              <div className="border rounded-2xl overflow-hidden bg-slate-50/50">
+                <button onClick={() => setAccordionOpen(!accordionOpen)} className="w-full flex items-center justify-between p-3 font-extrabold text-xs text-gray-700">
+                  <span className="flex items-center gap-1.5">💰 資金控管與風報比試算 {isUSStock && <span className="text-indigo-600 font-bold ml-1 text-[10px]">≈ 美元 ${effectiveCapital.toFixed(0)}</span>}</span>
+                  {accordionOpen ? <Icons.ChevronUp size={14} /> : <Icons.ChevronDown size={14} />}
+                </button>
+                {accordionOpen && (
+                  <div className="px-3 pb-3 space-y-3 border-t border-slate-100 pt-3 bg-white animate-fade-in-up">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">總投資金額 (HKD)</label>
+                      <input type="number" value={totalCapital} onChange={e => setTotalCapital(e.target.value)} className="w-full p-2.5 border rounded-xl text-xs font-bold" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">設定止損價</label>
+                        <input type="number" step="0.01" value={stopLossPrice} onChange={e => setStopLossPrice(e.target.value)} className="w-full p-2.5 border rounded-xl text-xs font-bold text-rose-500" placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">目標止盈價</label>
+                        <input type="number" step="0.01" value={targetPrice} onChange={e => setTargetPrice(e.target.value)} className="w-full p-2.5 border rounded-xl text-xs font-bold text-emerald-500" placeholder="0.00" />
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-2.5 flex justify-between items-center text-xs">
+                      <div className="text-gray-500 font-medium">單筆最大風險 <strong className="text-rose-500">{riskPercent}%</strong> | 預估利潤 <strong className="text-emerald-500">{rewardPercent}%</strong></div>
+                      <div className="font-extrabold text-gray-700">R/R 比: <strong className="text-indigo-600 text-sm">{rrRatio}</strong></div>
+                    </div>
+                    {maxShares !== null && (
+                      <div className="p-2.5 bg-indigo-600 text-white rounded-xl text-[11px] font-bold leading-normal text-center shadow-md shadow-indigo-100">
+                        依風控 0.5% 計算：建議買入 <strong className="text-sm underline mx-1">{maxShares}</strong> 股 (約使用資金 ${maxAmount.toFixed(2)})
                       </div>
                     )}
                   </div>
-                  <div><label className="text-xs font-bold text-slate-500">止損價</label><input type="number" step="0.01" value={stopLossPrice} onChange={e=>setStopLossPrice(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-base"/></div>
-                  <div><label className="text-xs font-bold text-slate-500">目標價</label><input type="number" step="0.01" value={targetPrice} onChange={e=>setTargetPrice(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-base"/></div>
-                  <div className="flex flex-col justify-end">
-                    <div className="text-xs text-slate-500">風險報酬比</div>
-                    <div className="font-bold text-xl">{rrRatio!=='--'?rrRatio:'--'}</div>
-                    <div className="text-xs text-slate-400">風險 {riskPercent}% / 報酬 {rewardPercent}%</div>
-                  </div>
-                </div>
-                {maxShares !== null && (
-                  <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                    <p className="text-sm font-bold text-indigo-800 mb-2">📈 基於最大回撤 0.5% 的倉位計算 ({isUSStock ? '美元' : '港元'})</p>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div><span className="text-slate-500">每股風險：</span><strong className="text-slate-700">${ (buyP - stopP).toFixed(2) }</strong></div>
-                      <div><span className="text-slate-500">最大虧損額：</span><strong className="text-slate-700">${ (effectiveCapital * 0.005).toFixed(2) }</strong></div>
-                      <div><span className="text-slate-500">可買入股數：</span><strong className="text-indigo-700 text-lg">{maxShares} 股</strong></div>
-                      <div><span className="text-slate-500">可買入金額：</span><strong className="text-indigo-700 text-lg">${ maxAmount.toFixed(2) }</strong></div>
-                    </div>
-                  </div>
                 )}
-              </details>
+              </div>
             </div>
 
-            <div className="p-5 md:p-8 space-y-10">
-              <div className="flex items-center justify-between"><span className="text-sm font-bold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full">✅ 核對清單 (加權計算)</span><div className="flex items-center gap-3"><span className="text-xs text-slate-400">完成 {completionPercent}%</span><div className="w-20 h-2.5 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{width:`${completionPercent}%`}}></div></div></div></div>
-              {METS_CHECKLIST.map((cat,catIdx)=>{
-                const catEdge = categoryEdges[cat.category]||{long:0,short:0,total:0};
-                const colorClasses = ["category-market", "category-sector", "category-trend", "category-structure"];
-                return (
-                  <div key={catIdx} className={`bg-white rounded-2xl border border-slate-100 card-shadow-sm p-6 space-y-5 ${colorClasses[catIdx]}`}>
-                    <div className="flex items-center justify-between"><h2 className="font-extrabold text-slate-800 text-lg flex items-center gap-3"><span className={`w-2 h-6 rounded-full ${catIdx===0?'bg-blue-500':catIdx===1?'bg-purple-500':catIdx===2?'bg-emerald-500':'bg-amber-500'}`}></span>{cat.category}</h2><div className="flex gap-3">{catEdge.long>0&&<span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">+{catEdge.long}L</span>}{catEdge.short>0&&<span className="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded-full font-bold">-{catEdge.short}S</span>}</div></div>
-                    <p className="text-xs text-slate-400 -mt-2">{cat.description}</p>
-                    <div className="space-y-5">
-                      {cat.items.map(item=>{
-                        const selected = answers[item.id];
+            {/* M.E.T.S. 指標檢核清單 */}
+            <div className="space-y-4">
+              {METS_CHECKLIST.map((cat, idx) => (
+                <div key={idx} className="bg-white rounded-3xl p-4 card-shadow-sm border border-gray-100 space-y-3">
+                  <h3 className="font-extrabold text-xs text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${idx===0?'bg-blue-500':idx===1?'bg-purple-500':idx===2?'bg-emerald-500':'bg-amber-500'}`}></span>
+                    {cat.category}
+                  </h3>
+                  <div className="space-y-3.5">
+                    {cat.items.map(item => {
+                      if (item.dynamic) {
+                        if (item.id === 's_ma_support') {
+                          const answer = answers[item.id];
+                          return (
+                            <div key={item.id} className="space-y-2 pt-1 border-t border-gray-50/50 first:border-0 first:pt-0">
+                              <p className="text-xs font-bold text-gray-700">{item.label}</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                {Object.entries(priceInputs.s_ma_support).map(([key, val]) => {
+                                  const detail = answer?.details?.find(d => d.key === key);
+                                  return (
+                                    <div key={key} className="flex items-center gap-1.5 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                                      <span className="text-[9px] font-black text-gray-400 uppercase w-9">{key.replace('ma','MA ')}</span>
+                                      <input type="number" step="0.01" value={val} onChange={e => handlePriceChange(item.id, e.target.value, key)} className="w-14 p-1 text-xs border rounded bg-white text-center font-bold text-gray-800" placeholder="0.0" />
+                                      {detail && (
+                                        <span className={`px-1 py-0.5 rounded text-[9px] font-black flex-1 text-center truncate ${detail.edge==='long'?'bg-emerald-50 text-emerald-700':'bg-rose-50 text-rose-700'}`}>
+                                          {detail.edge==='long'?'L':'S'} {detail.pct ? `${detail.pct.toFixed(0)}%`:''}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        }
+                        const answer = answers[item.id];
                         return (
-                          <div key={item.id} className="space-y-2.5">
-                            <p className="text-sm font-bold text-slate-600 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-slate-300"></span>{item.label}{selected&&<span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-2 ${selected.edge==='long'?'bg-emerald-100 text-emerald-600':selected.edge==='short'?'bg-rose-100 text-rose-600':'bg-slate-100 text-slate-500'}`}>{selected.edge==='long'?'✓':selected.edge==='short'?'⚠':'—'}</span>}</p>
-                            <div className="flex flex-wrap gap-3">
-                              {item.options.map((opt,oIdx)=>{
-                                const isSelected = selected?.text===opt.text;
-                                let btnStyle = "px-4 py-3 rounded-xl text-sm font-medium transition-all flex-1 min-w-[30%] text-center btn-press border-2";
-                                if(isSelected){ if(opt.edge==='long') btnStyle+=" bg-emerald-50 border-emerald-500 text-emerald-800 font-bold shadow-sm"; else if(opt.edge==='short') btnStyle+=" bg-rose-50 border-rose-500 text-rose-800 font-bold shadow-sm"; else btnStyle+=" bg-slate-100 border-slate-400 text-slate-800 font-bold shadow-sm"; }
-                                else btnStyle+=" bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50";
-                                return <button key={oIdx} onClick={()=>handleOptionSelect(item.id,opt)} className={btnStyle}>{opt.text}</button>;
-                              })}
+                          <div key={item.id} className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50/50 first:border-0 first:pt-0">
+                            <span className="text-xs font-bold text-gray-700">{item.label}</span>
+                            <div className="flex items-center gap-1.5">
+                              <input type="number" step="0.01" value={priceInputs[item.id] || ''} onChange={e => handlePriceChange(item.id, e.target.value)} className="w-20 p-1.5 text-xs border rounded-xl text-center font-bold text-gray-800" placeholder="價格" />
+                              {answer && (
+                                <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold ${answer.edge==='long'?'bg-emerald-50 text-emerald-700':'bg-rose-50 text-rose-700'}`}>
+                                  {answer.edge==='long'?'📈':'📉'} {answer.text}
+                                </span>
+                              )}
                             </div>
                           </div>
                         );
-                      })}
-                    </div>
+                      }
+                      
+                      const selected = answers[item.id];
+                      return (
+                        <div key={item.id} className="space-y-1.5 pt-2 border-t border-gray-50/50 first:border-0 first:pt-0">
+                          <p className="text-xs font-bold text-gray-700">{item.label}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {item.options.map((opt, oIdx) => {
+                              const isSel = selected?.text === opt.text;
+                              return (
+                                <button key={oIdx} onClick={() => handleOptionSelect(item.id, opt)} className={`px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition-all btn-press ${isSel ? 'chip-active' : 'chip-inactive'}`}>
+                                  {opt.text}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </main>
-          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-5 pb-10 safe-bottom shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 app-container">
-            <div className="flex justify-between items-center mb-4 px-2"><span className="text-sm font-bold text-slate-500">📊 加權評估</span><div className="flex gap-6"><div className="flex items-center gap-2"><span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm"></span><span className="font-extrabold text-2xl text-emerald-700">{edges.long}</span><span className="text-sm text-slate-500">Long</span></div><div className="flex items-center gap-2"><span className="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-sm"></span><span className="font-extrabold text-2xl text-rose-700">{edges.short}</span><span className="text-sm text-slate-500">Short</span></div></div></div>
-            <button onClick={handleSave} className="w-full bg-slate-900 text-white rounded-2xl py-5 font-extrabold text-xl btn-press shadow-lg">💾 儲存交易計劃</button>
+
+          {/* 底部功能控制列 */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,16px))] shadow-[0_-8px_24px_rgba(0,0,0,0.04)] z-20">
+            <div className="app-container relative">
+              <div className="flex justify-between items-center mb-2 px-1">
+                <span className="text-[9px] font-black text-gray-400 tracking-wider uppercase">加權優劣勢評估</span>
+                <div className="flex gap-2">
+                  <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-100">Long: {currentEdges.long}</span>
+                  <span className="badge bg-rose-50 text-rose-700 border border-rose-100">Short: {currentEdges.short}</span>
+                </div>
+              </div>
+              <button onClick={() => handleSave('watchlist')} className="w-full bg-slate-950 hover:bg-slate-900 text-white rounded-2xl py-3.5 font-bold text-sm shadow-md btn-press">
+                儲存至我的觀察名單
+              </button>
+            </div>
           </div>
+          <Modal isOpen={modal.isOpen} onClose={() => setModal({ isOpen: false })} title="提示" actions={<button onClick={() => setModal({ isOpen: false })} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs">好</button>}>{modal.message}</Modal>
         </div>
       );
     }
 
     function ReviewTradeForm({ trade, onSave, onCancel }) {
-      const [actualBuyPrice, setActualBuyPrice] = useState(trade.targetBuyPrice?.toString()||'');
-      const [sellDate, setSellDate] = useState(()=>new Date().toISOString().split('T')[0]);
+      const [actualBuyPrice, setActualBuyPrice] = useState(trade.actualBuyPrice || trade.targetBuyPrice || '');
+      const [sellDate, setSellDate] = useState(new Date().toISOString().split('T')[0]);
       const [sellPrice, setSellPrice] = useState('');
       const [reviewNotes, setReviewNotes] = useState('');
-      const [showValidation, setShowValidation] = useState(false);
-
-      const previewBuy = parseFloat(actualBuyPrice); const previewSell = parseFloat(sellPrice);
-      const valid = !isNaN(previewBuy)&&previewBuy>0&&!isNaN(previewSell)&&previewSell>0;
-      const previewPnL = valid?calcPnL(previewBuy,previewSell):null;
-      const previewDays = valid?calcHoldingDays(trade.buyDate,sellDate):null;
+      const [modal, setModal] = useState({ isOpen: false, message: '' });
 
       const handleSave = () => {
-        setShowValidation(true);
-        const errors = []; const bp = parseFloat(actualBuyPrice); const sp = parseFloat(sellPrice);
-        if(isNaN(bp)||bp<=0) errors.push('請輸入有效的實際買入價');
-        if(isNaN(sp)||sp<=0) errors.push('請輸入有效的賣出價');
-        if(!sellDate) errors.push('請選擇賣出日期');
-        if(sellDate&&trade.buyDate&&sellDate<trade.buyDate) errors.push('賣出日期不能早於買入日期');
-        if(errors.length>0){alert(errors.join('\n'));return;}
-        onSave({actualBuyPrice:bp,sellDate,sellPrice:sp,reviewNotes:reviewNotes.trim(),holdingDays:calcHoldingDays(trade.buyDate,sellDate),pnlPercent:calcPnL(bp,sp)});
+        const bp = parseFloat(actualBuyPrice);
+        const sp = parseFloat(sellPrice);
+        if (isNaN(bp) || bp <= 0) {
+          setModal({ isOpen: true, message: '請輸入有效的實際買入價格。' });
+          return;
+        }
+        if (isNaN(sp) || sp <= 0) {
+          setModal({ isOpen: true, message: '請輸入有效的實際賣出價格。' });
+          return;
+        }
+
+        const holdingDays = calcHoldingDays(trade.buyDate, sellDate);
+        const pnlPercent = calcPnL(bp, sp);
+
+        onSave({ actualBuyPrice: bp, sellDate, sellPrice: sp, reviewNotes, holdingDays, pnlPercent });
       };
 
       return (
-        <div className="flex flex-col min-h-screen bg-white relative">
-          <header className="flex items-center p-5 border-b border-slate-100 bg-white/95 backdrop-blur-sm sticky top-0 z-20"><button onClick={onCancel} className="p-2 -ml-2 text-slate-500 btn-press rounded-xl"><Icons.ArrowLeft/></button><h1 className="text-xl font-extrabold flex-1 text-center pr-8 text-slate-900">交易後檢討</h1></header>
-          <main className="flex-1 overflow-y-auto pb-48 hide-scrollbar">
-            <div className="p-5 md:p-8"><div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl text-white shadow-lg card-shadow-lg"><div className="flex justify-between"><div><h2 className="text-4xl font-black">{trade.ticker}</h2><p className="text-indigo-200 text-sm mt-1">{formatDateFull(trade.buyDate)} · {trade.strategy}</p></div><div className="bg-white/20 rounded-xl p-4"><p className="text-xs text-indigo-200 mb-1">M.E.T.S</p><div className="flex gap-3"><span className="text-sm bg-emerald-400 text-emerald-900 px-3 py-1 rounded-full font-bold">L:{trade.edges?.long??0}</span><span className="text-sm bg-rose-400 text-rose-900 px-3 py-1 rounded-full font-bold">S:{trade.edges?.short??0}</span></div></div></div></div></div>
-            <div className="px-5 md:px-8 space-y-6">
-              <h3 className="font-extrabold text-slate-800 text-xl flex items-center gap-2"><Icons.CheckCircle size={20}/>輸入實際交易數據</h3>
-              <div><label className="block text-sm font-bold text-slate-600 mb-2">實際買入價</label><input type="number" step="0.01" value={actualBuyPrice} onChange={e=>setActualBuyPrice(e.target.value)} className={`w-full p-4 border-2 rounded-2xl text-lg font-bold outline-none ${showValidation&&(isNaN(parseFloat(actualBuyPrice))||parseFloat(actualBuyPrice)<=0)?'border-rose-300 bg-rose-50':'border-slate-200 focus:border-indigo-500'}`}/></div>
-              <div className="grid grid-cols-2 gap-5"><div><label className="block text-sm font-bold text-slate-600 mb-2">賣出日期</label><input type="date" value={sellDate} onChange={e=>setSellDate(e.target.value)} min={trade.buyDate} className={`w-full p-4 border-2 rounded-2xl text-lg font-semibold outline-none ${showValidation&&sellDate&&trade.buyDate&&sellDate<trade.buyDate?'border-rose-300 bg-rose-50':'border-slate-200 focus:border-indigo-500'}`}/></div><div><label className="block text-sm font-bold text-slate-600 mb-2">賣出價</label><input type="number" step="0.01" value={sellPrice} onChange={e=>setSellPrice(e.target.value)} className={`w-full p-4 border-2 rounded-2xl text-lg font-extrabold outline-none ${showValidation&&(!sellPrice||isNaN(parseFloat(sellPrice))||parseFloat(sellPrice)<=0)?'border-rose-300 bg-rose-50':'border-indigo-300 focus:border-indigo-500'}`}/></div></div>
-              {valid&&(<div className={`p-5 rounded-2xl border-2 ${previewPnL>=0?'bg-emerald-50 border-emerald-200':'bg-rose-50 border-rose-200'}`}><p className="text-base font-bold text-slate-600 mb-3">📊 即時預覽</p><div className="grid grid-cols-3 gap-4 text-center"><div><p className="text-xs text-slate-500">持倉天數</p><p className="font-extrabold text-2xl">{previewDays}天</p></div><div><p className="text-xs text-slate-500">盈虧金額</p><p className={`font-extrabold text-2xl ${previewPnL>=0?'text-emerald-600':'text-rose-600'}`}>${(previewSell-previewBuy).toFixed(2)}</p></div><div><p className="text-xs text-slate-500">報酬率</p><p className={`font-extrabold text-2xl ${previewPnL>=0?'gradient-text-profit':'gradient-text-loss'}`}>{previewPnL>=0?'+':''}{previewPnL.toFixed(2)}%</p></div></div></div>)}
-              <div className="pt-2"><label className="block text-sm font-bold text-slate-600 mb-2">💭 檢討與心得筆記</label><textarea rows="5" value={reviewNotes} onChange={e=>setReviewNotes(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-2xl text-base outline-none focus:border-indigo-500 bg-slate-50 focus:bg-white resize-none" placeholder="例如：太早賣出、跌破支持未止損..."></textarea></div>
+        <div className="flex flex-col min-h-screen bg-white">
+          <header className="flex items-center px-3 py-2.5 border-b bg-white sticky top-0 z-10">
+            <button onClick={onCancel} className="p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"><Icons.ArrowLeft size={22} /></button>
+            <h1 className="text-base font-extrabold flex-1 text-center pr-8 text-gray-800">完成交易與檢討 ({trade.ticker})</h1>
+          </header>
+          
+          <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-40">
+            <div className="bg-slate-50 p-4 rounded-3xl border border-gray-100 flex justify-between items-center animate-fade-in-up">
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">交易計畫</p>
+                <p className="font-extrabold text-xl text-gray-800 mt-0.5">{trade.ticker}</p>
+                <p className="text-xs text-gray-500 mt-1">策略: {trade.strategy}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">計畫買入日</p>
+                <p className="font-extrabold text-sm text-gray-700 mt-0.5">{formatDateShort(trade.buyDate)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <div>
+                <label className="text-xs font-bold text-gray-600 mb-1.5 block">實際成交買入價 (可根據手續費或實際價格微調)</label>
+                <input type="number" step="0.01" value={actualBuyPrice} onChange={e => setActualBuyPrice(e.target.value)} className="w-full p-3 border rounded-xl text-sm font-bold bg-slate-50" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-600 mb-1.5 block">賣出日期</label>
+                  <input type="date" value={sellDate} onChange={e => setSellDate(e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold text-gray-600" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-600 mb-1.5 block">賣出成交價</label>
+                  <input type="number" step="0.01" value={sellPrice} onChange={e => setSellPrice(e.target.value)} className="w-full p-3 border-2 border-indigo-200 rounded-xl text-sm font-extrabold text-indigo-700 focus:border-indigo-500 bg-indigo-50/20" placeholder="0.00" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 mb-1.5 block">交易檢討及學習筆記 (Lessons Learned)</label>
+                <textarea rows="5" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} className="w-full p-3 border rounded-xl text-xs font-medium leading-relaxed" placeholder="例如：我的買入判斷與紀律遵守如何？停利是否果斷？有哪些需要改進的地方？" />
+              </div>
             </div>
           </main>
-          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-5 pb-10 safe-bottom shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 app-container"><button onClick={handleSave} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl py-5 font-extrabold text-xl btn-press shadow-lg flex justify-center items-center gap-3"><Icons.CheckCircle size={24}/>完成檢討報告</button></div>
+          
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,16px))] shadow-[0_-8px_24px_rgba(0,0,0,0.04)] z-20">
+            <div className="app-container relative">
+              <button onClick={handleSave} className="w-full bg-gradient-to-r from-purple-700 to-indigo-600 text-white rounded-2xl py-3.5 font-bold text-sm shadow-md btn-press">
+                確認完成檢討報告
+              </button>
+            </div>
+          </div>
+          <Modal isOpen={modal.isOpen} onClose={() => setModal({ isOpen: false })} title="提示" actions={<button onClick={() => setModal({ isOpen: false })} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs">好</button>}>{modal.message}</Modal>
         </div>
       );
     }
 
     function ReportView({ trade, onBack, onDelete }) {
       const isProfit = trade.pnlPercent >= 0;
-      const categoryEdges = calculateCategoryEdges(trade.answers || {});
-      const allAnswers = [];
-      METS_CHECKLIST.forEach(cat => cat.items.forEach(item => {
-        const ans = trade.answers?.[item.id];
-        if (ans) allAnswers.push({ category: cat.category, label: item.label, option: ans });
-      }));
-
       return (
-        <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-          <header className="flex items-center p-5 bg-white/90 backdrop-blur-md sticky top-0 z-20 shadow-sm border-b border-slate-200">
-            <button onClick={onBack} className="p-2 -ml-2 text-slate-500 btn-press rounded-xl"><Icons.ArrowLeft/></button>
-            <h1 className="text-xl font-extrabold flex-1 text-center pr-8 text-slate-900">檢討報告</h1>
+        <div className="flex flex-col min-h-screen bg-slate-50">
+          <header className="flex items-center justify-between px-3 py-2.5 border-b bg-white sticky top-0 z-10">
+            <button onClick={onBack} className="p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"><Icons.ArrowLeft size={22} /></button>
+            <h1 className="text-base font-extrabold text-gray-800">交易檢討報告 ({trade.ticker})</h1>
+            <button onClick={onDelete} className="p-1.5 -mr-1.5 text-gray-300 hover:text-rose-500 transition-colors"><Icons.Trash size={16} /></button>
           </header>
-          <main className="flex-1 overflow-y-auto px-5 md:px-8 py-8 pb-28 space-y-8 hide-scrollbar">
-            <div className={`rounded-3xl p-8 text-white shadow-xl card-shadow-lg animate-fade-in-up ${isProfit ? 'bg-gradient-to-br from-emerald-500 to-teal-700' : 'bg-gradient-to-br from-rose-500 to-rose-700'}`}>
-              <div className="flex items-start justify-between mb-6">
+          
+          <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-20">
+            {/* 總結卡片 */}
+            <div className={`p-5 rounded-3xl text-white shadow-xl animate-fade-in-up ${isProfit ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-rose-500 to-red-600'}`}>
+              <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h2 className="text-5xl font-black tracking-tight">{trade.ticker}</h2>
-                  <p className="text-white/80 text-lg font-medium mt-2">{trade.strategy || '未指定策略'}</p>
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-80">交易結果</span>
+                  <h2 className="text-3xl font-black tracking-tight">{trade.ticker}</h2>
+                  <span className="badge bg-white/20 text-white mt-1 border border-white/10 text-[9px] font-bold">{trade.strategy}</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-white/60 text-sm uppercase tracking-wider font-bold mb-1">總回報</p>
-                  <p className="text-5xl font-black">{isProfit ? '+' : ''}{trade.pnlPercent.toFixed(2)}%</p>
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-80">回報比率</span>
+                  <p className="text-3xl font-black tracking-tight mt-0.5">{isProfit ? '+' : ''}{trade.pnlPercent?.toFixed(2)}%</p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-6 pt-6 border-t border-white/20">
-                <div><p className="text-white/60 text-sm uppercase tracking-wider font-bold mb-1">買入價</p><p className="font-extrabold text-2xl">${trade.actualBuyPrice?.toFixed(2)}</p></div>
-                <div><p className="text-white/60 text-sm uppercase tracking-wider font-bold mb-1">賣出價</p><p className="font-extrabold text-2xl">${trade.sellPrice?.toFixed(2)}</p></div>
-                <div><p className="text-white/60 text-sm uppercase tracking-wider font-bold mb-1">持倉</p><p className="font-extrabold text-2xl">{trade.holdingDays} 天</p></div>
-              </div>
-              <div className="mt-6 pt-4 border-t border-white/20 flex items-center gap-3 text-white/80 text-base">
-                <Icons.Calendar size={18} /><span>{formatDateFull(trade.buyDate)}</span><span className="mx-1">→</span><span>{formatDateFull(trade.sellDate)}</span>
+              <div className="grid grid-cols-3 gap-2 border-t border-white/20 pt-3.5 mt-2 text-center text-xs">
+                <div>
+                  <p className="opacity-70 text-[9px] font-bold uppercase mb-0.5">平均買價</p>
+                  <p className="font-extrabold text-base">${trade.actualBuyPrice?.toFixed(2)}</p>
+                </div>
+                <div className="border-l border-r border-white/10">
+                  <p className="opacity-70 text-[9px] font-bold uppercase mb-0.5">賣出價格</p>
+                  <p className="font-extrabold text-base">${trade.sellPrice?.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="opacity-70 text-[9px] font-bold uppercase mb-0.5">持倉天數</p>
+                  <p className="font-extrabold text-base">{trade.holdingDays} 天</p>
+                </div>
               </div>
             </div>
-            <div className="bg-white rounded-3xl p-6 card-shadow-md border border-slate-100 animate-fade-in-up-delay-1">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-extrabold text-slate-800 text-2xl flex items-center gap-3"><span className="w-2 h-8 bg-indigo-500 rounded-full"></span> M.E.T.S 判斷回顧</h3>
-                <div className="flex gap-3"><span className="badge bg-emerald-100 text-emerald-700 text-base px-3 py-1">📈 Long {trade.edges?.long ?? 0}</span><span className="badge bg-rose-100 text-rose-700 text-base px-3 py-1">📉 Short {trade.edges?.short ?? 0}</span></div>
+
+            {/* 檢討筆記 */}
+            <div className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 space-y-2 animate-fade-in-up">
+              <h3 className="font-extrabold text-[11px] text-gray-400 uppercase tracking-wider">💡 學習筆記 (Lessons Learned)</h3>
+              <p className="text-xs text-gray-700 leading-relaxed font-semibold whitespace-pre-wrap bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                {trade.reviewNotes || '無任何心得筆記。'}
+              </p>
+            </div>
+
+            {/* M.E.T.S 指引回顧 */}
+            <div className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 space-y-3 animate-fade-in-up">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                <h3 className="font-extrabold text-[11px] text-gray-400 uppercase tracking-wider">📊 當時 M.E.T.S. 評分依據</h3>
+                <div className="flex gap-1.5">
+                  <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-100">L: {trade.edges?.long}</span>
+                  <span className="badge bg-rose-50 text-rose-700 border border-rose-100">S: {trade.edges?.short}</span>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 mb-5">
-                {Object.entries(categoryEdges).map(([cat, ed]) => (
-                  <div key={cat} className="bg-slate-50 rounded-xl p-4">
-                    <p className="text-sm font-bold text-slate-500 truncate">{cat.replace(/^[^\s]+\s/, '')}</p>
-                    <div className="flex gap-3 mt-2">
-                      {ed.long > 0 && <span className="text-base text-emerald-600 font-bold">+{ed.long} L</span>}
-                      {ed.short > 0 && <span className="text-base text-rose-600 font-bold">-{ed.short} S</span>}
-                      {ed.long === 0 && ed.short === 0 && <span className="text-base text-slate-400">未評估</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-3 max-h-96 overflow-y-auto hide-scrollbar">
-                {allAnswers.map((item, idx) => {
-                  const dot = item.option.edge === 'long' ? 'bg-emerald-500' : item.option.edge === 'short' ? 'bg-rose-500' : 'bg-slate-300';
-                  const bg = item.option.edge === 'long' ? 'bg-emerald-50' : item.option.edge === 'short' ? 'bg-rose-50' : 'bg-slate-50';
+              <div className="space-y-1">
+                {Object.entries(trade.answers).map(([key, option]) => {
+                  if (!option) return null;
+                  let label = key;
+                  METS_CHECKLIST.forEach(cat => cat.items.forEach(i => { if (i.id === key) label = i.label; }));
+                  const edge = option.edge;
+                  const edgeStyle = edge === 'long' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : edge === 'short' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-gray-50 text-gray-600 border-gray-100';
                   return (
-                    <div key={idx} className={`flex items-start justify-between ${bg} rounded-xl px-4 py-3`}>
-                      <div className="flex-1 min-w-0 pr-3">
-                        <span className="text-xs text-slate-400 block truncate">{item.category}</span>
-                        <span className="text-base font-medium text-slate-700">{item.label}</span>
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <span className={`text-base font-bold ${item.option.edge === 'long' ? 'text-emerald-700' : item.option.edge === 'short' ? 'text-rose-700' : 'text-slate-600'}`}>
-                          {item.option.text}
-                        </span>
-                        <span className={`w-3 h-3 rounded-full ${dot}`}></span>
-                      </div>
+                    <div key={key} className="data-row">
+                      <span className="data-label text-gray-500 font-semibold">{label}</span>
+                      <span className={`badge border text-[10px] py-0.5 ${edgeStyle}`}>{option.text}</span>
                     </div>
                   );
                 })}
               </div>
-            </div>
-            <div className="bg-white rounded-3xl p-6 card-shadow-md border border-slate-100 animate-fade-in-up-delay-2">
-              <h3 className="font-extrabold text-slate-800 text-2xl mb-4 flex items-center gap-3"><span className="w-2 h-8 bg-amber-500 rounded-full"></span> 檢討筆記</h3>
-              {trade.reviewNotes ? (
-                <p className="text-slate-700 text-lg leading-relaxed bg-slate-50 rounded-xl p-5 whitespace-pre-wrap">{trade.reviewNotes}</p>
-              ) : (
-                <p className="text-slate-400 text-lg italic bg-slate-50 rounded-xl p-5 text-center">尚未撰寫任何檢討筆記。</p>
-              )}
-            </div>
-            <div className="pt-4">
-              <button onClick={() => onDelete(trade.id)} className="w-full border-2 border-rose-200 text-rose-500 rounded-2xl py-4 font-bold text-lg btn-press hover:bg-rose-50 flex items-center justify-center gap-3 transition-colors"><Icons.Trash size={20}/> 刪除此檢討報告</button>
             </div>
           </main>
         </div>
