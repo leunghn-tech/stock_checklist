@@ -4,10 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>M.E.T.S. 股票交易檢討系統</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js">
+  </script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js">
+  </script>
+  <!-- 使用更稳定的 Babel standalone 版本 -->
+  <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js">
+  </script>
   <style>
     :root { --safe-bottom: env(safe-area-inset-bottom, 16px); }
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
@@ -34,9 +39,6 @@
     .data-row:last-child { border-bottom: none; }
     .data-label { color: #9ca3af; white-space: nowrap; font-weight: 500; }
     .data-value { font-weight: 600; color: #374151; text-align: right; }
-    /* 緊湊佈局輔助 */
-    .compact-section { padding: 0.5rem 0.75rem; }
-    .compact-input { padding: 0.6rem 0.75rem; }
   </style>
 </head>
 <body>
@@ -44,15 +46,14 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
+    // ---- 策略選項 ----
+    const STRATEGY_OPTIONS = ["VCP", "Pocket Pivot", "BOL", "HVB", "Pull back Recovery", "Pull back Testing", "LVP", "Buyable gap-up", "Shakeout play", "Buy in support level"];
+
     // ---- M.E.T.S 清單 ----
     const METS_CHECKLIST = [
       { category: "大盤指數 (Market)", items: [
         { id: "m_trend", label: "大盤指數趨勢", options: [
-          { text: "強勢上升", edge: "long", weight: 1 }, 
-          { text: "弱勢上升", edge: "long", weight: 1 }, 
-          { text: "盤整區間", edge: "neutral", weight: 1 }, 
-          { text: "弱勢下降", edge: "short", weight: 1 }, 
-          { text: "強勁下降", edge: "short", weight: 1 }
+          { text: "強勢上升", edge: "long", weight: 1 }, { text: "弱勢上升", edge: "long", weight: 1 }, { text: "盤整區間", edge: "neutral", weight: 1 }, { text: "弱勢下降", edge: "short", weight: 1 }, { text: "強勁下降", edge: "short", weight: 1 }
         ]},
         { id: "m_dist", label: "出貨日", options: [{ text: "無 / 很少", edge: "long", weight: 1 }, { text: "有顯著出貨日", edge: "short", weight: 1 }] },
         { id: "m_breadth50", label: "市寬 - 50天線以上比例", options: [{ text: ">70%", edge: "long", weight: 1 }, { text: "50-70%", edge: "neutral", weight: 1 }, { text: "<50%", edge: "short", weight: 1 }, { text: "Not given", edge: "neutral", weight: 1 }] },
@@ -89,278 +90,557 @@
       ]}
     ];
 
+    // ---- 工具函數 ----
     const calculateEdges = (answers) => {
       let long = 0, short = 0;
-      METS_CHECKLIST.forEach(cat => cat.items.forEach(item => {
-        const ans = answers[item.id];
-        if (ans && ans.edge) { const w = ans.weight || 1; if (ans.edge === 'long') long += w; if (ans.edge === 'short') short += w; }
-      }));
+      METS_CHECKLIST.forEach(function(cat) {
+        cat.items.forEach(function(item) {
+          const ans = answers[item.id];
+          if (ans && ans.edge) {
+            const w = ans.weight || 1;
+            if (ans.edge === 'long') long += w;
+            if (ans.edge === 'short') short += w;
+          }
+        });
+      });
       return { long: Math.round(long * 10) / 10, short: Math.round(short * 10) / 10 };
     };
 
-    const formatDateShort = (ds) => { if (!ds) return '--'; const p = ds.split('-'); return p.length===3?`${p[1]}/${p[2]}`:ds; };
-    const calcHoldingDays = (b, s) => { if(!b || !s) return 0; return Math.max(1, Math.floor((new Date(s+'T00:00:00') - new Date(b+'T00:00:00')) / 86400000)); };
-    const calcPnL = (bp, sp) => { if(!bp || bp===0 || !sp) return 0; return ((sp-bp)/bp)*100; };
+    const formatDateShort = function(ds) {
+      if (!ds) return '--';
+      const p = ds.split('-');
+      if (p.length === 3) return p[1] + '/' + p[2];
+      return ds;
+    };
     
-    const getSupportEdge = (price, buyPrice) => {
+    const calcHoldingDays = function(b, s) {
+      if (!b || !s) return 0;
+      const buyDate = new Date(b + 'T00:00:00');
+      const sellDate = new Date(s + 'T00:00:00');
+      const diff = sellDate - buyDate;
+      return Math.max(1, Math.floor(diff / 86400000));
+    };
+    
+    const calcPnL = function(bp, sp) {
+      if (!bp || bp === 0 || !sp) return 0;
+      return ((sp - bp) / bp) * 100;
+    };
+    
+    const getSupportEdge = function(price, buyPrice) {
       if (!buyPrice || buyPrice <= 0 || !price) return null;
       const pct = ((buyPrice - price) / buyPrice) * 100;
-      if (pct < 0) return { text: `跌破 ${pct.toFixed(1)}%`, edge: "short", pct };
-      if (pct < 3) return { text: `很近 ${pct.toFixed(1)}%`, edge: "long", pct };
-      if (pct <= 5) return { text: `適中 ${pct.toFixed(1)}%`, edge: "neutral", pct };
-      return { text: `較遠 ${pct.toFixed(1)}%`, edge: "short", pct };
+      if (pct < 0) return { text: '跌破 ' + pct.toFixed(1) + '%', edge: "short", pct: pct };
+      if (pct < 3) return { text: '很近 ' + pct.toFixed(1) + '%', edge: "long", pct: pct };
+      if (pct <= 5) return { text: '適中 ' + pct.toFixed(1) + '%', edge: "neutral", pct: pct };
+      return { text: '較遠 ' + pct.toFixed(1) + '%', edge: "short", pct: pct };
     };
     
-    const getResistEdge = (price, buyPrice) => {
+    const getResistEdge = function(price, buyPrice) {
       if (!buyPrice || buyPrice <= 0 || !price) return null;
       const pct = ((price - buyPrice) / buyPrice) * 100;
-      if (pct < 0) return { text: `已突破 ${pct.toFixed(1)}%`, edge: "short", pct };
-      if (pct > 5) return { text: `較遠 ${pct.toFixed(1)}%`, edge: "long", pct };
-      if (pct >= 3) return { text: `適中 ${pct.toFixed(1)}%`, edge: "neutral", pct };
-      return { text: `很近 ${pct.toFixed(1)}%`, edge: "short", pct };
+      if (pct < 0) return { text: '已突破 ' + pct.toFixed(1) + '%', edge: "short", pct: pct };
+      if (pct > 5) return { text: '較遠 ' + pct.toFixed(1) + '%', edge: "long", pct: pct };
+      if (pct >= 3) return { text: '適中 ' + pct.toFixed(1) + '%', edge: "neutral", pct: pct };
+      return { text: '很近 ' + pct.toFixed(1) + '%', edge: "short", pct: pct };
     };
 
+    // ---- SVG 圖標 ----
     const Icons = {
-      Plus: (s=24)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-      ArrowLeft: (s=24)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
-      ChevronDown: (s=16)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
-      ChevronUp: (s=16)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>,
-      ChevronRight: (s=20)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
-      TrendingUp: (s=24)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 18 8.5 10.5 13.5 15.5 23 6"/><polyline points="17 6 23 6 23 12"/></svg>,
-      Trash: (s=16)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
-      EmptyFolder: (s=40)=><svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
+      Plus: function(s) { s = s || 24; return React.createElement('svg', {xmlns:"http://www.w3.org/2000/svg", width:s, height:s, fill:"none", stroke:"currentColor", strokeWidth:"2.5", strokeLinecap:"round", strokeLinejoin:"round"}, React.createElement('line', {x1:"12", y1:"5", x2:"12", y2:"19"}), React.createElement('line', {x1:"5", y1:"12", x2:"19", y2:"12"})); },
+      ArrowLeft: function(s) { s = s || 24; return React.createElement('svg', {xmlns:"http://www.w3.org/2000/svg", width:s, height:s, fill:"none", stroke:"currentColor", strokeWidth:"2.5", strokeLinecap:"round", strokeLinejoin:"round"}, React.createElement('line', {x1:"19", y1:"12", x2:"5", y2:"12"}), React.createElement('polyline', {points:"12 19 5 12 12 5"})); },
+      ChevronDown: function(s) { s = s || 16; return React.createElement('svg', {xmlns:"http://www.w3.org/2000/svg", width:s, height:s, fill:"none", stroke:"currentColor", strokeWidth:"2.5", strokeLinecap:"round", strokeLinejoin:"round"}, React.createElement('polyline', {points:"6 9 12 15 18 9"})); },
+      ChevronUp: function(s) { s = s || 16; return React.createElement('svg', {xmlns:"http://www.w3.org/2000/svg", width:s, height:s, fill:"none", stroke:"currentColor", strokeWidth:"2.5", strokeLinecap:"round", strokeLinejoin:"round"}, React.createElement('polyline', {points:"18 15 12 9 6 15"})); },
+      TrendingUp: function(s) { s = s || 24; return React.createElement('svg', {xmlns:"http://www.w3.org/2000/svg", width:s, height:s, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round"}, React.createElement('polyline', {points:"1 18 8.5 10.5 13.5 15.5 23 6"}), React.createElement('polyline', {points:"17 6 23 6 23 12"})); },
+      Trash: function(s) { s = s || 16; return React.createElement('svg', {xmlns:"http://www.w3.org/2000/svg", width:s, height:s, fill:"none", stroke:"currentColor", strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round"}, React.createElement('polyline', {points:"3 6 5 6 21 6"}), React.createElement('path', {d:"M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"}), React.createElement('path', {d:"M10 11v6"}), React.createElement('path', {d:"M14 11v6"}), React.createElement('path', {d:"M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"})); },
+      EmptyFolder: function(s) { s = s || 40; return React.createElement('svg', {xmlns:"http://www.w3.org/2000/svg", width:s, height:s, fill:"none", stroke:"currentColor", strokeWidth:"1.5", strokeLinecap:"round", strokeLinejoin:"round", className:"text-gray-300"}, React.createElement('path', {d:"M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"})); }
     };
 
-    function Modal({ isOpen, onClose, title, children, actions }) {
+    // ---- Modal 組件 ----
+    function Modal(props) {
+      const isOpen = props.isOpen;
+      const onClose = props.onClose;
+      const title = props.title;
+      const children = props.children;
+      const actions = props.actions;
+      
       if (!isOpen) return null;
-      return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl animate-fade-in-up" onClick={e => e.stopPropagation()}>
-            {title && <h3 className="text-lg font-extrabold text-gray-800 mb-2">{title}</h3>}
-            <div className="text-xs text-gray-600 font-medium leading-relaxed">{children}</div>
-            {actions && <div className="flex justify-end gap-3 mt-5">{actions}</div>}
-          </div>
-        </div>
+      
+      return React.createElement('div', {
+        className: "fixed inset-0 z-50 flex items-center justify-center px-4",
+        onClick: onClose
+      },
+        React.createElement('div', { className: "absolute inset-0 bg-black/30 backdrop-blur-sm" }),
+        React.createElement('div', {
+          className: "relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl animate-fade-in-up",
+          onClick: function(e) { e.stopPropagation(); }
+        },
+          title && React.createElement('h3', { className: "text-lg font-extrabold text-gray-800 mb-2" }, title),
+          React.createElement('div', { className: "text-xs text-gray-600 font-medium leading-relaxed" }, children),
+          actions && React.createElement('div', { className: "flex justify-end gap-3 mt-5" }, actions)
+        )
       );
     }
 
+    // ---- 主應用 ----
     function App() {
-      const [trades, setTrades] = useState(() => { try { return JSON.parse(localStorage.getItem('mets_trades_v23')) || []; } catch { return []; } });
+      const [trades, setTrades] = useState(function() {
+        try {
+          const saved = localStorage.getItem('mets_trades_v23');
+          return saved ? JSON.parse(saved) : [];
+        } catch(e) {
+          return [];
+        }
+      });
       const [view, setView] = useState('dashboard');
       const [currentTrade, setCurrentTrade] = useState(null);
-      useEffect(() => { localStorage.setItem('mets_trades_v23', JSON.stringify(trades)); }, [trades]);
       
-      const goTo = (v, t = null) => { setCurrentTrade(t); setView(v); window.scrollTo(0, 0); };
+      useEffect(function() {
+        localStorage.setItem('mets_trades_v23', JSON.stringify(trades));
+      }, [trades]);
       
-      const saveNewTrade = (data, status = 'watchlist') => {
+      const goTo = function(v, t) {
+        setCurrentTrade(t || null);
+        setView(v);
+        window.scrollTo(0, 0);
+      };
+      
+      const saveNewTrade = function(data, status) {
+        status = status || 'watchlist';
         if (currentTrade && currentTrade.status === 'watchlist') {
-          // 修改現有計劃
-          setTrades(prev => prev.map(t => t.id === currentTrade.id ? { ...t, ...data } : t));
+          setTrades(function(prev) {
+            return prev.map(function(t) {
+              if (t.id === currentTrade.id) {
+                return Object.assign({}, t, data);
+              }
+              return t;
+            });
+          });
         } else {
-          // 新增全新計劃
-          const nt = { ...data, id: Date.now().toString(), status, createdAt: new Date().toISOString() };
-          setTrades(prev => [nt, ...prev]);
+          const nt = Object.assign({}, data, {
+            id: Date.now().toString(),
+            status: status,
+            createdAt: new Date().toISOString()
+          });
+          setTrades(function(prev) { return [nt].concat(prev); });
         }
         goTo('dashboard');
       };
       
-      const buyFromWatchlist = (trade, actualBuyPrice) => {
-        setTrades(prev => prev.map(t => t.id === trade.id ? { ...t, status: 'active', buyDate: new Date().toISOString().split('T')[0], actualBuyPrice: actualBuyPrice || t.targetBuyPrice } : t));
+      const buyFromWatchlist = function(trade, actualBuyPrice) {
+        setTrades(function(prev) {
+          return prev.map(function(t) {
+            if (t.id === trade.id) {
+              return Object.assign({}, t, {
+                status: 'active',
+                buyDate: new Date().toISOString().split('T')[0],
+                actualBuyPrice: actualBuyPrice || t.targetBuyPrice
+              });
+            }
+            return t;
+          });
+        });
       };
-      const completeTrade = (tid, review) => {
-        setTrades(prev => prev.map(t => t.id === tid ? { ...t, ...review, status: 'completed' } : t)); goTo('dashboard');
+      
+      const completeTrade = function(tid, review) {
+        setTrades(function(prev) {
+          return prev.map(function(t) {
+            if (t.id === tid) {
+              return Object.assign({}, t, review, { status: 'completed' });
+            }
+            return t;
+          });
+        });
+        goTo('dashboard');
       };
-      const deleteTrade = (tid) => { setTrades(prev => prev.filter(t => t.id !== tid)); };
+      
+      const deleteTrade = function(tid) {
+        setTrades(function(prev) {
+          return prev.filter(function(t) { return t.id !== tid; });
+        });
+      };
 
-      // 智能分流導向
-      const handleSelectTrade = (trade) => {
+      const handleSelectTrade = function(trade) {
         if (trade.status === 'watchlist') {
-          goTo('new_trade', trade); // 觀察中計劃 ➜ 前往修改交易計畫
+          goTo('new_trade', trade);
         } else if (trade.status === 'active') {
-          goTo('review_trade', trade); // 持有中交易 ➜ 前往檢討與賣出
+          goTo('review_trade', trade);
         } else if (trade.status === 'completed') {
-          goTo('report', trade); // 已完成交易 ➜ 前往精美報告
+          goTo('report', trade);
         }
       };
 
-      return (
-        <div className="app-container min-h-screen bg-gray-50 shadow-2xl relative">
-          {view === 'dashboard' && <Dashboard trades={trades} onNew={() => goTo('new_trade')} onSelect={handleSelectTrade} onDelete={deleteTrade} onBuy={buyFromWatchlist} />}
-          {view === 'new_trade' && <NewTradeForm onSave={saveNewTrade} onCancel={() => goTo('dashboard')} editTrade={currentTrade} />}
-          {view === 'review_trade' && currentTrade && <ReviewTradeForm trade={currentTrade} onSave={d => completeTrade(currentTrade.id, d)} onCancel={() => goTo('dashboard')} />}
-          {view === 'report' && currentTrade && <ReportView trade={currentTrade} onBack={() => goTo('dashboard')} onDelete={() => { deleteTrade(currentTrade.id); goTo('dashboard'); }} />}
-        </div>
+      return React.createElement('div', { className: "app-container min-h-screen bg-gray-50 shadow-2xl relative" },
+        view === 'dashboard' && React.createElement(Dashboard, {
+          trades: trades,
+          onNew: function() { goTo('new_trade'); },
+          onSelect: handleSelectTrade,
+          onDelete: deleteTrade,
+          onBuy: buyFromWatchlist
+        }),
+        view === 'new_trade' && React.createElement(NewTradeForm, {
+          onSave: saveNewTrade,
+          onCancel: function() { goTo('dashboard'); },
+          editTrade: currentTrade
+        }),
+        view === 'review_trade' && currentTrade && React.createElement(ReviewTradeForm, {
+          trade: currentTrade,
+          onSave: function(d) { completeTrade(currentTrade.id, d); },
+          onCancel: function() { goTo('dashboard'); }
+        }),
+        view === 'report' && currentTrade && React.createElement(ReportView, {
+          trade: currentTrade,
+          onBack: function() { goTo('dashboard'); },
+          onDelete: function() {
+            deleteTrade(currentTrade.id);
+            goTo('dashboard');
+          }
+        })
       );
     }
 
-    function Dashboard({ trades, onNew, onSelect, onDelete, onBuy }) {
+    // ---- 儀表板 ----
+    function Dashboard(props) {
+      const trades = props.trades;
+      const onNew = props.onNew;
+      const onSelect = props.onSelect;
+      const onDelete = props.onDelete;
+      const onBuy = props.onBuy;
+      
       const [tab, setTab] = useState('watchlist');
-      const watchlist = trades.filter(t => t.status === 'watchlist');
-      const active = trades.filter(t => t.status === 'active');
-      const completed = trades.filter(t => t.status === 'completed');
+      const watchlist = trades.filter(function(t) { return t.status === 'watchlist'; });
+      const active = trades.filter(function(t) { return t.status === 'active'; });
+      const completed = trades.filter(function(t) { return t.status === 'completed'; });
       const totalComp = completed.length;
-      const winRate = totalComp > 0 ? ((completed.filter(t => t.pnlPercent > 0).length / totalComp) * 100).toFixed(1) : '--';
-      const avgPnL = totalComp > 0 ? (completed.reduce((s, t) => s + (t.pnlPercent || 0), 0) / totalComp).toFixed(2) : '--';
+      
+      let winRate = '--';
+      if (totalComp > 0) {
+        const profitCount = completed.filter(function(t) { return t.pnlPercent > 0; }).length;
+        winRate = ((profitCount / totalComp) * 100).toFixed(1);
+      }
+      
+      let avgPnL = '--';
+      if (totalComp > 0) {
+        const total = completed.reduce(function(s, t) { return s + (t.pnlPercent || 0); }, 0);
+        avgPnL = (total / totalComp).toFixed(2);
+      }
+      
       const [modal, setModal] = useState({ isOpen: false, type: null, trade: null });
 
-      const openDeleteModal = (t, e) => { e.stopPropagation(); setModal({ isOpen: true, type: 'delete', trade: t }); };
-      const openBuyModal = (t, e) => { e.stopPropagation(); setModal({ isOpen: true, type: 'buy', trade: t }); };
-      const closeModal = () => setModal({ isOpen: false });
+      const openDeleteModal = function(t, e) {
+        e.stopPropagation();
+        setModal({ isOpen: true, type: 'delete', trade: t });
+      };
       
-      const handleBuyConfirm = (price) => {
+      const openBuyModal = function(t, e) {
+        e.stopPropagation();
+        setModal({ isOpen: true, type: 'buy', trade: t });
+      };
+      
+      const closeModal = function() {
+        setModal({ isOpen: false, type: null, trade: null });
+      };
+      
+      const handleBuyConfirm = function(price) {
         if (modal.trade && price && !isNaN(parseFloat(price)) && parseFloat(price) > 0) {
           onBuy(modal.trade, parseFloat(price));
         }
         closeModal();
       };
 
-      const renderEmptyState = (message) => (
-        <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in-up">
-          <Icons.EmptyFolder size={44} />
-          <p className="text-gray-400 text-xs font-bold mt-3">{message}</p>
-        </div>
-      );
+      const renderEmptyState = function(message) {
+        return React.createElement('div', { className: "flex flex-col items-center justify-center py-16 text-center animate-fade-in-up" },
+          React.createElement(Icons.EmptyFolder, { size: 44 }),
+          React.createElement('p', { className: "text-gray-400 text-xs font-bold mt-3" }, message)
+        );
+      };
 
-      return (
-        <div className="flex flex-col min-h-screen">
-          <header className="bg-gradient-to-r from-purple-700 to-indigo-600 text-white px-5 pt-6 pb-6 rounded-b-[2.5rem] shadow-lg safe-bottom">
-            <h1 className="text-2xl font-black tracking-tight">M.E.T.S. 股票交易檢討</h1>
-            <div className="grid grid-cols-3 gap-3 mt-4">
-              <div className="bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5"><p className="text-xl font-extrabold">{totalComp}</p><p className="text-[10px] text-white/80 mt-0.5">總交易</p></div>
-              <div className="bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5"><p className={`text-xl font-extrabold ${parseFloat(winRate) >= 50 ? 'text-emerald-300' : 'text-rose-300'}`}>{winRate}%</p><p className="text-[10px] text-white/80 mt-0.5">勝率</p></div>
-              <div className="bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5"><p className={`text-xl font-extrabold ${parseFloat(avgPnL) >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>{parseFloat(avgPnL) >= 0 ? '+' : ''}{avgPnL}%</p><p className="text-[10px] text-white/80 mt-0.5">平均盈虧</p></div>
-            </div>
-          </header>
-          
-          <div className="flex bg-white border-b border-gray-100 px-2 sticky top-0 z-10">
-            {[{ key: 'watchlist', label: '📋 觀察名單', count: watchlist.length }, { key: 'active', label: '📈 持有中', count: active.length }, { key: 'history', label: '📊 歷史報告', count: completed.length }].map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)} className={`flex-1 py-3 text-xs font-bold text-center transition-colors ${tab === t.key ? 'tab-active' : 'tab-inactive hover:text-gray-600'}`}>{t.label} ({t.count})</button>
-            ))}
-          </div>
-          
-          <main className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-24">
-            {tab === 'watchlist' && (watchlist.length === 0 ? renderEmptyState('暫無觀察項目，點擊下方按鈕規劃新計畫') : watchlist.map(t => (
-              <div key={t.id} onClick={() => onSelect(t)} className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 animate-fade-in-up cursor-pointer hover:border-purple-200 transition-colors">
-                <div className="flex justify-between items-start mb-2">
-                  <div><span className="font-extrabold text-xl text-gray-800 tracking-tight">{t.ticker}</span><span className="badge bg-indigo-50 text-indigo-700 ml-2 border border-indigo-100">{t.strategy}</span></div>
-                  <button onClick={(e) => openDeleteModal(t, e)} className="text-gray-300 hover:text-rose-500 p-1"><Icons.Trash size={14}/></button>
-                </div>
-                <div className="data-row"><span className="data-label">計劃買入價</span><span className="data-value">${t.targetBuyPrice?.toFixed(2)}</span></div>
-                <div className="data-row"><span className="data-label">止損 / 目標價</span><span className="data-value">${t.stopLossPrice?.toFixed(2) || '--'} / ${t.targetPrice?.toFixed(2) || '--'}</span></div>
-                <div className="data-row"><span className="data-label">風險 / 報酬比 (R/R)</span><span className="data-value">{t.riskPercent || '--'}% / {t.rewardPercent || '--'}% ({t.rrRatio || '--'})</span></div>
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
-                  <div className="flex gap-2">
-                    <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-100">L: {t.edges?.long??0}</span>
-                    <span className="badge bg-rose-50 text-rose-700 border border-rose-100">S: {t.edges?.short??0}</span>
-                    {t.maxShares && <span className="badge bg-indigo-50 text-indigo-700 border border-indigo-100">{t.maxShares}股</span>}
-                  </div>
-                  <button onClick={(e) => openBuyModal(t, e)} className="bg-indigo-600 text-white px-5 py-2 rounded-xl text-xs font-bold btn-press shadow-sm">確認買入</button>
-                </div>
-              </div>
-            )))}
-            {tab === 'active' && (active.length === 0 ? renderEmptyState('暫無持有項目') : active.map(t => (
-              <div key={t.id} onClick={() => onSelect(t)} className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 flex justify-between items-center animate-fade-in-up cursor-pointer hover:border-purple-200 transition-colors">
-                <div>
-                  <div className="flex items-center gap-2"><span className="font-extrabold text-xl text-gray-800 tracking-tight">{t.ticker}</span><span className="badge bg-indigo-50 text-indigo-700 border border-indigo-100">{t.strategy}</span></div>
-                  <div className="text-[10px] text-gray-400 font-semibold mt-1">📅 {formatDateShort(t.buyDate)} 成本: <strong className="text-gray-700">${t.actualBuyPrice?.toFixed(2) || t.targetBuyPrice?.toFixed(2)}</strong></div>
-                  <div className="flex gap-1.5 mt-1.5"><span className="badge bg-emerald-50 text-emerald-700">L: {t.edges?.long??0}</span><span className="badge bg-rose-50 text-rose-700">S: {t.edges?.short??0}</span></div>
-                </div>
-                <button className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold btn-press">檢討賣出</button>
-              </div>
-            )))}
-            {tab === 'history' && (completed.length === 0 ? renderEmptyState('暫無歷史報告，完成買賣檢討後即可生成') : completed.map(t => {
-              const isProfit = t.pnlPercent >= 0;
-              return (
-                <div key={t.id} onClick={() => onSelect(t)} className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer animate-fade-in-up hover:border-purple-200 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-2"><span className="font-extrabold text-xl text-gray-800 tracking-tight">{t.ticker}</span><span className={`badge ${isProfit ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{isProfit ? '📈 獲利' : '📉 虧損'}</span></div>
-                    <p className="text-[10px] text-gray-400 font-semibold mt-1">持倉 {t.holdingDays}天 | {formatDateShort(t.buyDate)} ➜ {formatDateShort(t.sellDate)}</p>
-                  </div>
-                  <p className={`text-xl font-black ${isProfit ? 'gradient-text-profit' : 'gradient-text-loss'}`}>{isProfit ? '+' : ''}{t.pnlPercent.toFixed(2)}%</p>
-                </div>
-              );
-            }))}
-          </main>
-          
-          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-50 via-gray-50 p-4 safe-bottom">
-            <div className="app-container relative">
-              <button onClick={onNew} className="w-full bg-gradient-to-r from-purple-700 to-indigo-600 text-white py-4 rounded-2xl font-black text-base shadow-lg btn-press flex items-center justify-center gap-2">
-                <Icons.Plus size={20} /> 新增交易前檢視
-              </button>
-            </div>
-          </div>
-          
-          <Modal isOpen={modal.isOpen && modal.type === 'delete'} onClose={closeModal} title="確認刪除項目" actions={<><button onClick={closeModal} className="px-4 py-2 text-xs text-gray-500 font-bold">取消</button><button onClick={() => { onDelete(modal.trade.id); closeModal(); }} className="px-4 py-2 bg-rose-500 text-white rounded-xl font-bold text-xs">確定刪除</button></>}>確定要將 {modal.trade?.ticker} 從清單中完全移除嗎？</Modal>
-          <Modal isOpen={modal.isOpen && modal.type === 'buy'} onClose={closeModal} title={`買入紀錄：${modal.trade?.ticker}`} actions={<><button onClick={closeModal} className="px-4 py-2 text-xs text-gray-500 font-bold">取消</button><button onClick={() => { const input = document.getElementById('buy-price-input'); if (input) handleBuyConfirm(input.value); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs">確認交易</button></>}>
-            <div className="space-y-3 pt-1"><p className="text-xs font-semibold text-gray-500">計畫進場價: <strong className="text-gray-800">${modal.trade?.targetBuyPrice?.toFixed(2)}</strong></p><label className="block text-xs font-bold text-gray-700">請輸入實際買入成交價：</label><input id="buy-price-input" type="number" step="0.01" defaultValue={modal.trade?.targetBuyPrice?.toFixed(2)} className="w-full p-3 border-2 border-indigo-100 rounded-xl text-lg font-bold text-indigo-700 text-center outline-none focus:border-indigo-500" placeholder="0.00" autoFocus /></div>
-          </Modal>
-        </div>
+      // 构建标签按钮数据
+      const tabs = [
+        { key: 'watchlist', label: '📋 觀察名單', count: watchlist.length },
+        { key: 'active', label: '📈 持有中', count: active.length },
+        { key: 'history', label: '📊 歷史報告', count: completed.length }
+      ];
+
+      return React.createElement('div', { className: "flex flex-col min-h-screen" },
+        // 顶部
+        React.createElement('header', { className: "bg-gradient-to-r from-purple-700 to-indigo-600 text-white px-5 pt-6 pb-6 rounded-b-[2.5rem] shadow-lg safe-bottom" },
+          React.createElement('h1', { className: "text-2xl font-black tracking-tight" }, "M.E.T.S. 股票交易檢討"),
+          React.createElement('div', { className: "grid grid-cols-3 gap-3 mt-4" },
+            React.createElement('div', { className: "bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5" },
+              React.createElement('p', { className: "text-xl font-extrabold" }, totalComp),
+              React.createElement('p', { className: "text-[10px] text-white/80 mt-0.5" }, "總交易")
+            ),
+            React.createElement('div', { className: "bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5" },
+              React.createElement('p', { className: "text-xl font-extrabold " + (parseFloat(winRate) >= 50 ? 'text-emerald-300' : 'text-rose-300') }, winRate + '%'),
+              React.createElement('p', { className: "text-[10px] text-white/80 mt-0.5" }, "勝率")
+            ),
+            React.createElement('div', { className: "bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/5" },
+              React.createElement('p', { className: "text-xl font-extrabold " + (parseFloat(avgPnL) >= 0 ? 'text-emerald-300' : 'text-rose-300') }, (parseFloat(avgPnL) >= 0 ? '+' : '') + avgPnL + '%'),
+              React.createElement('p', { className: "text-[10px] text-white/80 mt-0.5" }, "平均盈虧")
+            )
+          )
+        ),
+        // 标签栏
+        React.createElement('div', { className: "flex bg-white border-b border-gray-100 px-2 sticky top-0 z-10" },
+          tabs.map(function(t) {
+            return React.createElement('button', {
+              key: t.key,
+              onClick: function() { setTab(t.key); },
+              className: "flex-1 py-3 text-xs font-bold text-center transition-colors " + (tab === t.key ? 'tab-active' : 'tab-inactive hover:text-gray-600')
+            }, t.label + ' (' + t.count + ')');
+          })
+        ),
+        // 主内容区
+        React.createElement('main', { className: "flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-24" },
+          tab === 'watchlist' && (watchlist.length === 0 ? renderEmptyState('暫無觀察項目，點擊下方按鈕規劃新計畫') : watchlist.map(function(t) {
+            return React.createElement('div', {
+              key: t.id,
+              onClick: function() { onSelect(t); },
+              className: "bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 animate-fade-in-up cursor-pointer hover:border-purple-200 transition-colors"
+            },
+              React.createElement('div', { className: "flex justify-between items-start mb-2" },
+                React.createElement('div', null,
+                  React.createElement('span', { className: "font-extrabold text-xl text-gray-800 tracking-tight" }, t.ticker),
+                  React.createElement('span', { className: "badge bg-indigo-50 text-indigo-700 ml-2 border border-indigo-100" }, t.strategy)
+                ),
+                React.createElement('button', {
+                  onClick: function(e) { openDeleteModal(t, e); },
+                  className: "text-gray-300 hover:text-rose-500 p-1"
+                }, React.createElement(Icons.Trash, { size: 14 }))
+              ),
+              React.createElement('div', { className: "data-row" },
+                React.createElement('span', { className: "data-label" }, "計劃買入價"),
+                React.createElement('span', { className: "data-value" }, '$' + (t.targetBuyPrice ? t.targetBuyPrice.toFixed(2) : '--'))
+              ),
+              React.createElement('div', { className: "data-row" },
+                React.createElement('span', { className: "data-label" }, "止損 / 目標價"),
+                React.createElement('span', { className: "data-value" }, '$' + (t.stopLossPrice ? t.stopLossPrice.toFixed(2) : '--') + ' / $' + (t.targetPrice ? t.targetPrice.toFixed(2) : '--'))
+              ),
+              React.createElement('div', { className: "data-row" },
+                React.createElement('span', { className: "data-label" }, "風險 / 報酬比 (R/R)"),
+                React.createElement('span', { className: "data-value" }, (t.riskPercent || '--') + '% / ' + (t.rewardPercent || '--') + '% (' + (t.rrRatio || '--') + ')')
+              ),
+              React.createElement('div', { className: "flex items-center justify-between mt-3 pt-2 border-t border-gray-100" },
+                React.createElement('div', { className: "flex gap-2" },
+                  React.createElement('span', { className: "badge bg-emerald-50 text-emerald-700 border border-emerald-100" }, 'L: ' + (t.edges ? t.edges.long : 0)),
+                  React.createElement('span', { className: "badge bg-rose-50 text-rose-700 border border-rose-100" }, 'S: ' + (t.edges ? t.edges.short : 0)),
+                  t.maxShares && React.createElement('span', { className: "badge bg-indigo-50 text-indigo-700 border border-indigo-100" }, t.maxShares + '股')
+                ),
+                React.createElement('button', {
+                  onClick: function(e) { openBuyModal(t, e); },
+                  className: "bg-indigo-600 text-white px-5 py-2 rounded-xl text-xs font-bold btn-press shadow-sm"
+                }, "確認買入")
+              )
+            );
+          })),
+          tab === 'active' && (active.length === 0 ? renderEmptyState('暫無持有項目') : active.map(function(t) {
+            return React.createElement('div', {
+              key: t.id,
+              onClick: function() { onSelect(t); },
+              className: "bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 flex justify-between items-center animate-fade-in-up cursor-pointer hover:border-purple-200 transition-colors"
+            },
+              React.createElement('div', null,
+                React.createElement('div', { className: "flex items-center gap-2" },
+                  React.createElement('span', { className: "font-extrabold text-xl text-gray-800 tracking-tight" }, t.ticker),
+                  React.createElement('span', { className: "badge bg-indigo-50 text-indigo-700 border border-indigo-100" }, t.strategy)
+                ),
+                React.createElement('div', { className: "text-[10px] text-gray-400 font-semibold mt-1" },
+                  '📅 ' + formatDateShort(t.buyDate) + ' 成本: ',
+                  React.createElement('strong', { className: "text-gray-700" }, '$' + (t.actualBuyPrice ? t.actualBuyPrice.toFixed(2) : t.targetBuyPrice ? t.targetBuyPrice.toFixed(2) : '--'))
+                ),
+                React.createElement('div', { className: "flex gap-1.5 mt-1.5" },
+                  React.createElement('span', { className: "badge bg-emerald-50 text-emerald-700" }, 'L: ' + (t.edges ? t.edges.long : 0)),
+                  React.createElement('span', { className: "badge bg-rose-50 text-rose-700" }, 'S: ' + (t.edges ? t.edges.short : 0))
+                )
+              ),
+              React.createElement('button', { className: "bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold btn-press" }, "檢討賣出")
+            );
+          })),
+          tab === 'history' && (completed.length === 0 ? renderEmptyState('暫無歷史報告，完成買賣檢討後即可生成') : completed.map(function(t) {
+            const isProfit = t.pnlPercent >= 0;
+            return React.createElement('div', {
+              key: t.id,
+              onClick: function() { onSelect(t); },
+              className: "bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer animate-fade-in-up hover:border-purple-200 transition-colors"
+            },
+              React.createElement('div', null,
+                React.createElement('div', { className: "flex items-center gap-2" },
+                  React.createElement('span', { className: "font-extrabold text-xl text-gray-800 tracking-tight" }, t.ticker),
+                  React.createElement('span', { className: "badge " + (isProfit ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700') }, isProfit ? '📈 獲利' : '📉 虧損')
+                ),
+                React.createElement('p', { className: "text-[10px] text-gray-400 font-semibold mt-1" },
+                  '持倉 ' + t.holdingDays + '天 | ' + formatDateShort(t.buyDate) + ' ➜ ' + formatDateShort(t.sellDate)
+                )
+              ),
+              React.createElement('p', {
+                className: "text-xl font-black " + (isProfit ? 'gradient-text-profit' : 'gradient-text-loss')
+              }, (isProfit ? '+' : '') + t.pnlPercent.toFixed(2) + '%')
+            );
+          }))
+        ),
+        // 底部按钮
+        React.createElement('div', { className: "fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-50 via-gray-50 p-4 safe-bottom" },
+          React.createElement('div', { className: "app-container relative" },
+            React.createElement('button', {
+              onClick: onNew,
+              className: "w-full bg-gradient-to-r from-purple-700 to-indigo-600 text-white py-4 rounded-2xl font-black text-base shadow-lg btn-press flex items-center justify-center gap-2"
+            },
+              React.createElement(Icons.Plus, { size: 20 }),
+              " 新增交易前檢視"
+            )
+          )
+        ),
+        // 模态框
+        React.createElement(Modal, {
+          isOpen: modal.isOpen && modal.type === 'delete',
+          onClose: closeModal,
+          title: "確認刪除項目",
+          actions: React.createElement(React.Fragment, null,
+            React.createElement('button', { onClick: closeModal, className: "px-4 py-2 text-xs text-gray-500 font-bold" }, "取消"),
+            React.createElement('button', {
+              onClick: function() { onDelete(modal.trade.id); closeModal(); },
+              className: "px-4 py-2 bg-rose-500 text-white rounded-xl font-bold text-xs"
+            }, "確定刪除")
+          )
+        }, '確定要將 ' + (modal.trade ? modal.trade.ticker : '') + ' 從清單中完全移除嗎？'),
+        React.createElement(Modal, {
+          isOpen: modal.isOpen && modal.type === 'buy',
+          onClose: closeModal,
+          title: '買入紀錄：' + (modal.trade ? modal.trade.ticker : ''),
+          actions: React.createElement(React.Fragment, null,
+            React.createElement('button', { onClick: closeModal, className: "px-4 py-2 text-xs text-gray-500 font-bold" }, "取消"),
+            React.createElement('button', {
+              onClick: function() {
+                const input = document.getElementById('buy-price-input');
+                if (input) handleBuyConfirm(input.value);
+              },
+              className: "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs"
+            }, "確認交易")
+          )
+        },
+          React.createElement('div', { className: "space-y-3 pt-1" },
+            React.createElement('p', { className: "text-xs font-semibold text-gray-500" },
+              '計畫進場價: ',
+              React.createElement('strong', { className: "text-gray-800" }, '$' + (modal.trade ? modal.trade.targetBuyPrice ? modal.trade.targetBuyPrice.toFixed(2) : '--' : '--'))
+            ),
+            React.createElement('label', { className: "block text-xs font-bold text-gray-700" }, "請輸入實際買入成交價："),
+            React.createElement('input', {
+              id: "buy-price-input",
+              type: "number",
+              step: "0.01",
+              defaultValue: modal.trade ? (modal.trade.targetBuyPrice ? modal.trade.targetBuyPrice.toFixed(2) : '') : '',
+              className: "w-full p-3 border-2 border-indigo-100 rounded-xl text-lg font-bold text-indigo-700 text-center outline-none focus:border-indigo-500",
+              placeholder: "0.00",
+              autoFocus: true
+            })
+          )
+        )
       );
     }
 
-    function NewTradeForm({ onSave, onCancel, editTrade }) {
+    // ---- 交易前檢視表單 ----
+    function NewTradeForm(props) {
+      const onSave = props.onSave;
+      const onCancel = props.onCancel;
+      const editTrade = props.editTrade;
+      
       const [ticker, setTicker] = useState(editTrade ? editTrade.ticker : '');
       const [buyDate, setBuyDate] = useState(editTrade ? editTrade.buyDate : new Date().toISOString().split('T')[0]);
       const [targetBuyPrice, setTargetBuyPrice] = useState(editTrade ? editTrade.targetBuyPrice : '');
       const [strategy, setStrategy] = useState(editTrade ? editTrade.strategy : 'LVP');
       const [answers, setAnswers] = useState(editTrade ? editTrade.answers : {});
-      const [totalCapital, setTotalCapital] = useState(editTrade ? editTrade.totalCapital.toString() : '75000');
-      const [stopLossPrice, setStopLossPrice] = useState(editTrade ? editTrade.stopLossPrice || '' : '');
-      const [targetPrice, setTargetPrice] = useState(editTrade ? editTrade.targetPrice || '' : '');
+      const [totalCapital, setTotalCapital] = useState(editTrade ? String(editTrade.totalCapital) : '75000');
+      const [stopLossPrice, setStopLossPrice] = useState(editTrade ? (editTrade.stopLossPrice || '') : '');
+      const [targetPrice, setTargetPrice] = useState(editTrade ? (editTrade.targetPrice || '') : '');
       const [priceInputs, setPriceInputs] = useState(editTrade ? editTrade.priceInputs : {
         s_daily_support: '', s_daily_resist: '', s_weekly_support: '', s_weekly_resist: '',
         s_trendline: '', s_prev_resist_support: '', s_ma_support: { ma10: '', ma20: '', ma50: '', ma200: '' }
       });
       const [accordionOpen, setAccordionOpen] = useState(false);
-      const [modal, setModal] = useState({ isOpen: false, message: '' });
+      const [modalMsg, setModalMsg] = useState({ isOpen: false, message: '' });
 
       const buyP = parseFloat(targetBuyPrice);
       const isUSStock = /^[A-Za-z.]+$/.test(ticker.trim());
       const capitalHKD = parseFloat(totalCapital) || 0;
       const effectiveCapital = isUSStock ? capitalHKD / 7.8 : capitalHKD;
 
-      // 自動加權與 Edge 計算
-      useEffect(() => {
+      useEffect(function() {
         if (!buyP || buyP <= 0) return;
         const newDynamicAnswers = {};
-        METS_CHECKLIST.flatMap(cat => cat.items).filter(item => item.dynamic).forEach(item => {
+        const dynamicItems = [];
+        METS_CHECKLIST.forEach(function(cat) {
+          cat.items.forEach(function(item) {
+            if (item.dynamic) dynamicItems.push(item);
+          });
+        });
+        dynamicItems.forEach(function(item) {
           if (item.id === 's_ma_support') {
             const maValues = priceInputs.s_ma_support;
-            const edges = []; let longCount = 0, shortCount = 0;
-            Object.entries(maValues).forEach(([key, val]) => {
+            const edges = [];
+            let longCount = 0, shortCount = 0;
+            Object.entries(maValues).forEach(function(entry) {
+              const key = entry[0];
+              const val = entry[1];
               const price = parseFloat(val);
               if (!isNaN(price) && price > 0) {
                 const edge = price <= buyP ? getSupportEdge(price, buyP) : getResistEdge(price, buyP);
-                if (edge) { edges.push({ key, price, ...edge }); if (edge.edge === 'long') longCount++; else if (edge.edge === 'short') shortCount++; }
+                if (edge) {
+                  edges.push({ key: key, price: price, text: edge.text, edge: edge.edge, pct: edge.pct });
+                  if (edge.edge === 'long') longCount++;
+                  else if (edge.edge === 'short') shortCount++;
+                }
               }
             });
-            newDynamicAnswers[item.id] = edges.length === 0 ? null : { edge: longCount >= shortCount ? 'long' : 'short', weight: 1, details: edges, text: `移動平均線支持` };
+            if (edges.length === 0) {
+              newDynamicAnswers[item.id] = null;
+            } else {
+              newDynamicAnswers[item.id] = {
+                edge: longCount >= shortCount ? 'long' : 'short',
+                weight: 1,
+                details: edges,
+                text: '移動平均線支持'
+              };
+            }
           } else {
             const price = parseFloat(priceInputs[item.id]);
-            if (isNaN(price) || price <= 0) { newDynamicAnswers[item.id] = null; return; }
+            if (isNaN(price) || price <= 0) {
+              newDynamicAnswers[item.id] = null;
+              return;
+            }
             const edgeObj = item.type === 'support' ? getSupportEdge(price, buyP) : getResistEdge(price, buyP);
-            if (edgeObj) newDynamicAnswers[item.id] = { ...edgeObj, weight: 1 };
+            if (edgeObj) newDynamicAnswers[item.id] = { text: edgeObj.text, edge: edgeObj.edge, weight: 1, pct: edgeObj.pct };
           }
         });
-        setAnswers(prev => ({ ...prev, ...newDynamicAnswers }));
+        setAnswers(function(prev) { return Object.assign({}, prev, newDynamicAnswers); });
       }, [priceInputs, buyP]);
 
-      const currentEdges = useMemo(() => calculateEdges(answers), [answers]);
+      const currentEdges = useMemo(function() { return calculateEdges(answers); }, [answers]);
       
-      const handleOptionSelect = (itemId, option) => {
-        if (answers[itemId]?.text === option.text) {
-          const newAns = { ...answers }; delete newAns[itemId]; setAnswers(newAns);
+      const handleOptionSelect = function(itemId, option) {
+        if (answers[itemId] && answers[itemId].text === option.text) {
+          setAnswers(function(prev) {
+            const newAns = Object.assign({}, prev);
+            delete newAns[itemId];
+            return newAns;
+          });
         } else {
-          setAnswers(prev => ({ ...prev, [itemId]: option }));
+          setAnswers(function(prev) {
+            const newAns = Object.assign({}, prev);
+            newAns[itemId] = option;
+            return newAns;
+          });
         }
       };
       
-      const handlePriceChange = (itemId, value, maKey = null) => {
-        setPriceInputs(prev => {
-          const ns = { ...prev };
-          if (maKey) ns.s_ma_support = { ...ns.s_ma_support, [maKey]: value };
-          else ns[itemId] = value;
+      const handlePriceChange = function(itemId, value, maKey) {
+        setPriceInputs(function(prev) {
+          const ns = Object.assign({}, prev);
+          if (maKey) {
+            ns.s_ma_support = Object.assign({}, ns.s_ma_support);
+            ns.s_ma_support[maKey] = value;
+          } else {
+            ns[itemId] = value;
+          }
           return ns;
         });
       };
@@ -371,335 +651,488 @@
       let maxShares = null, maxAmount = null;
       if (buyP && stopLossPrice && effectiveCapital > 0 && parseFloat(stopLossPrice) < buyP) {
         const lossPerShare = buyP - parseFloat(stopLossPrice);
-        maxShares = Math.floor(effectiveCapital * 0.005 / lossPerShare); // 單筆曝險控制在總資產 0.5%
+        maxShares = Math.floor(effectiveCapital * 0.005 / lossPerShare);
         maxAmount = maxShares * buyP;
       }
 
-      const handleSave = (status = 'watchlist') => {
+      const handleSave = function(status) {
+        status = status || 'watchlist';
         if (!ticker.trim() || !buyP || buyP <= 0) {
-          setModal({ isOpen: true, message: '請務必填寫股票代號，以及合理的預計進場價格。' });
+          setModalMsg({ isOpen: true, message: '請務必填寫股票代號，以及合理的預計進場價格。' });
           return;
         }
         onSave({
-          ticker: ticker.trim().toUpperCase(), buyDate, targetBuyPrice: buyP, strategy,
-          answers, edges: currentEdges, priceInputs,
-          totalCapital: capitalHKD, stopLossPrice: parseFloat(stopLossPrice) || 0, targetPrice: parseFloat(targetPrice) || 0,
-          isUSStock, effectiveCapital, maxShares, maxAmount, rrRatio, riskPercent, rewardPercent
+          ticker: ticker.trim().toUpperCase(),
+          buyDate: buyDate,
+          targetBuyPrice: buyP,
+          strategy: strategy,
+          answers: answers,
+          edges: currentEdges,
+          priceInputs: priceInputs,
+          totalCapital: capitalHKD,
+          stopLossPrice: parseFloat(stopLossPrice) || 0,
+          targetPrice: parseFloat(targetPrice) || 0,
+          isUSStock: isUSStock,
+          effectiveCapital: effectiveCapital,
+          maxShares: maxShares,
+          maxAmount: maxAmount,
+          rrRatio: rrRatio,
+          riskPercent: riskPercent,
+          rewardPercent: rewardPercent
         }, status);
       };
 
-      const strategyOptions = ["VCP", "Pocket Pivot", "BOL", "HVB", "Pull back Recovery", "Pull back Testing", "LVP", "Buyable gap-up", "Shakeout play", "Buy in support level"];
+      // 构建 JSX 元素
+      const headerChildren = [
+        React.createElement('button', {
+          key: 'back',
+          onClick: onCancel,
+          className: "p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"
+        }, React.createElement(Icons.ArrowLeft, { size: 22 })),
+        React.createElement('h1', {
+          key: 'title',
+          className: "text-base font-extrabold flex-1 text-center pr-8 tracking-tight text-gray-800"
+        }, editTrade ? '修改 ' + editTrade.ticker + ' 交易計畫' : '建立 M.E.T.S 交易計畫')
+      ];
 
-      return (
-        <div className="flex flex-col min-h-screen bg-gray-50">
-          <header className="flex items-center px-3 py-2.5 border-b bg-white sticky top-0 z-20">
-            <button onClick={onCancel} className="p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"><Icons.ArrowLeft size={22} /></button>
-            <h1 className="text-base font-extrabold flex-1 text-center pr-8 tracking-tight text-gray-800">
-              {editTrade ? `修改 ${editTrade.ticker} 交易計畫` : '建立 M.E.T.S 交易計畫'}
-            </h1>
-          </header>
-          
-          <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-44">
-            {/* 基本數據與資金管理 */}
-            <div className="bg-white p-4 rounded-3xl border border-gray-100 card-shadow-sm space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">股票代號</label><input type="text" value={ticker} onChange={e => setTicker(e.target.value.toUpperCase())} className="w-full p-3 border rounded-xl text-lg font-black tracking-tight uppercase" placeholder="AAPL" /></div>
-                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">計畫日期</label><input type="date" value={buyDate} onChange={e => setBuyDate(e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold text-gray-600" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">計畫買入價</label><input type="number" step="0.01" value={targetBuyPrice} onChange={e => setTargetBuyPrice(e.target.value)} className="w-full p-3 border rounded-xl text-sm font-extrabold text-indigo-600" placeholder="0.00" /></div>
-                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">採用策略</label><select value={strategy} onChange={e => setStrategy(e.target.value)} className="w-full p-3 border rounded-xl bg-white text-xs font-bold text-gray-600">{strategyOptions.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-              </div>
-              
-              {/* 摺疊面板 */}
-              <div className="border rounded-2xl overflow-hidden bg-slate-50/50">
-                <button onClick={() => setAccordionOpen(!accordionOpen)} className="w-full flex items-center justify-between p-3 font-extrabold text-xs text-gray-700">
-                  <span className="flex items-center gap-1.5">💰 資金控管與風報比試算 {isUSStock && <span className="text-indigo-600 font-bold ml-1 text-[10px]">≈ 美元 ${effectiveCapital.toFixed(0)}</span>}</span>
-                  {accordionOpen ? <Icons.ChevronUp size={14} /> : <Icons.ChevronDown size={14} />}
-                </button>
-                {accordionOpen && (
-                  <div className="px-3 pb-3 space-y-3 border-t border-slate-100 pt-3 bg-white animate-fade-in-up">
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">總投資金額 (HKD)</label>
-                      <input type="number" value={totalCapital} onChange={e => setTotalCapital(e.target.value)} className="w-full p-2.5 border rounded-xl text-xs font-bold" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">設定止損價</label>
-                        <input type="number" step="0.01" value={stopLossPrice} onChange={e => setStopLossPrice(e.target.value)} className="w-full p-2.5 border rounded-xl text-xs font-bold text-rose-500" placeholder="0.00" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">目標止盈價</label>
-                        <input type="number" step="0.01" value={targetPrice} onChange={e => setTargetPrice(e.target.value)} className="w-full p-2.5 border rounded-xl text-xs font-bold text-emerald-500" placeholder="0.00" />
-                      </div>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-2.5 flex justify-between items-center text-xs">
-                      <div className="text-gray-500 font-medium">單筆最大風險 <strong className="text-rose-500">{riskPercent}%</strong> | 預估利潤 <strong className="text-emerald-500">{rewardPercent}%</strong></div>
-                      <div className="font-extrabold text-gray-700">R/R 比: <strong className="text-indigo-600 text-sm">{rrRatio}</strong></div>
-                    </div>
-                    {maxShares !== null && (
-                      <div className="p-2.5 bg-indigo-600 text-white rounded-xl text-[11px] font-bold leading-normal text-center shadow-md shadow-indigo-100">
-                        依風控 0.5% 計算：建議買入 <strong className="text-sm underline mx-1">{maxShares}</strong> 股 (約使用資金 ${maxAmount.toFixed(2)})
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+      const categoryColors = ['bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-amber-500'];
 
-            {/* M.E.T.S. 指標檢核清單 */}
-            <div className="space-y-4">
-              {METS_CHECKLIST.map((cat, idx) => (
-                <div key={idx} className="bg-white rounded-3xl p-4 card-shadow-sm border border-gray-100 space-y-3">
-                  <h3 className="font-extrabold text-xs text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${idx===0?'bg-blue-500':idx===1?'bg-purple-500':idx===2?'bg-emerald-500':'bg-amber-500'}`}></span>
-                    {cat.category}
-                  </h3>
-                  <div className="space-y-3.5">
-                    {cat.items.map(item => {
-                      if (item.dynamic) {
-                        if (item.id === 's_ma_support') {
-                          const answer = answers[item.id];
-                          return (
-                            <div key={item.id} className="space-y-2 pt-1 border-t border-gray-50/50 first:border-0 first:pt-0">
-                              <p className="text-xs font-bold text-gray-700">{item.label}</p>
-                              <div className="grid grid-cols-2 gap-2">
-                                {Object.entries(priceInputs.s_ma_support).map(([key, val]) => {
-                                  const detail = answer?.details?.find(d => d.key === key);
-                                  return (
-                                    <div key={key} className="flex items-center gap-1.5 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
-                                      <span className="text-[9px] font-black text-gray-400 uppercase w-9">{key.replace('ma','MA ')}</span>
-                                      <input type="number" step="0.01" value={val} onChange={e => handlePriceChange(item.id, e.target.value, key)} className="w-14 p-1 text-xs border rounded bg-white text-center font-bold text-gray-800" placeholder="0.0" />
-                                      {detail && (
-                                        <span className={`px-1 py-0.5 rounded text-[9px] font-black flex-1 text-center truncate ${detail.edge==='long'?'bg-emerald-50 text-emerald-700':'bg-rose-50 text-rose-700'}`}>
-                                          {detail.edge==='long'?'L':'S'} {detail.pct ? `${detail.pct.toFixed(0)}%`:''}
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        }
-                        const answer = answers[item.id];
-                        return (
-                          <div key={item.id} className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50/50 first:border-0 first:pt-0">
-                            <span className="text-xs font-bold text-gray-700">{item.label}</span>
-                            <div className="flex items-center gap-1.5">
-                              <input type="number" step="0.01" value={priceInputs[item.id] || ''} onChange={e => handlePriceChange(item.id, e.target.value)} className="w-20 p-1.5 text-xs border rounded-xl text-center font-bold text-gray-800" placeholder="價格" />
-                              {answer && (
-                                <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold ${answer.edge==='long'?'bg-emerald-50 text-emerald-700':'bg-rose-50 text-rose-700'}`}>
-                                  {answer.edge==='long'?'📈':'📉'} {answer.text}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
-                      
-                      const selected = answers[item.id];
-                      return (
-                        <div key={item.id} className="space-y-1.5 pt-2 border-t border-gray-50/50 first:border-0 first:pt-0">
-                          <p className="text-xs font-bold text-gray-700">{item.label}</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {item.options.map((opt, oIdx) => {
-                              const isSel = selected?.text === opt.text;
-                              return (
-                                <button key={oIdx} onClick={() => handleOptionSelect(item.id, opt)} className={`px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition-all btn-press ${isSel ? 'chip-active' : 'chip-inactive'}`}>
-                                  {opt.text}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </main>
+      const checklistCards = METS_CHECKLIST.map(function(cat, idx) {
+        const catItems = cat.items.map(function(item) {
+          if (item.dynamic) {
+            if (item.id === 's_ma_support') {
+              const answer = answers[item.id];
+              const maEntries = Object.entries(priceInputs.s_ma_support);
+              const maFields = maEntries.map(function(entry) {
+                const key = entry[0];
+                const val = entry[1];
+                const detail = answer && answer.details ? answer.details.find(function(d) { return d.key === key; }) : null;
+                return React.createElement('div', {
+                  key: key,
+                  className: "flex items-center gap-1.5 bg-gray-50 p-1.5 rounded-xl border border-gray-100"
+                },
+                  React.createElement('span', { className: "text-[9px] font-black text-gray-400 uppercase w-9" }, key.replace('ma', 'MA ')),
+                  React.createElement('input', {
+                    type: "number",
+                    step: "0.01",
+                    value: val,
+                    onChange: function(e) { handlePriceChange(item.id, e.target.value, key); },
+                    className: "w-14 p-1 text-xs border rounded bg-white text-center font-bold text-gray-800",
+                    placeholder: "0.0"
+                  }),
+                  detail && React.createElement('span', {
+                    className: "px-1 py-0.5 rounded text-[9px] font-black flex-1 text-center truncate " + (detail.edge === 'long' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700')
+                  }, (detail.edge === 'long' ? 'L' : 'S') + ' ' + (detail.pct ? detail.pct.toFixed(0) + '%' : ''))
+                );
+              });
+              return React.createElement('div', {
+                key: item.id,
+                className: "space-y-2 pt-1 border-t border-gray-50/50 first:border-0 first:pt-0"
+              },
+                React.createElement('p', { className: "text-xs font-bold text-gray-700" }, item.label),
+                React.createElement('div', { className: "grid grid-cols-2 gap-2" }, maFields)
+              );
+            }
+            const answer = answers[item.id];
+            return React.createElement('div', {
+              key: item.id,
+              className: "flex items-center justify-between gap-2 pt-2 border-t border-gray-50/50 first:border-0 first:pt-0"
+            },
+              React.createElement('span', { className: "text-xs font-bold text-gray-700" }, item.label),
+              React.createElement('div', { className: "flex items-center gap-1.5" },
+                React.createElement('input', {
+                  type: "number",
+                  step: "0.01",
+                  value: priceInputs[item.id] || '',
+                  onChange: function(e) { handlePriceChange(item.id, e.target.value); },
+                  className: "w-20 p-1.5 text-xs border rounded-xl text-center font-bold text-gray-800",
+                  placeholder: "價格"
+                }),
+                answer && React.createElement('span', {
+                  className: "px-2.5 py-1 rounded-xl text-[10px] font-bold " + (answer.edge === 'long' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700')
+                }, (answer.edge === 'long' ? '📈' : '📉') + ' ' + answer.text)
+              )
+            );
+          }
+          const selected = answers[item.id];
+          const optionButtons = item.options.map(function(opt, oIdx) {
+            const isSel = selected && selected.text === opt.text;
+            return React.createElement('button', {
+              key: oIdx,
+              onClick: function() { handleOptionSelect(item.id, opt); },
+              className: "px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition-all btn-press " + (isSel ? 'chip-active' : 'chip-inactive')
+            }, opt.text);
+          });
+          return React.createElement('div', {
+            key: item.id,
+            className: "space-y-1.5 pt-2 border-t border-gray-50/50 first:border-0 first:pt-0"
+          },
+            React.createElement('p', { className: "text-xs font-bold text-gray-700" }, item.label),
+            React.createElement('div', { className: "flex flex-wrap gap-1.5" }, optionButtons)
+          );
+        });
 
-          {/* 底部功能控制列 */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,16px))] shadow-[0_-8px_24px_rgba(0,0,0,0.04)] z-20">
-            <div className="app-container relative">
-              <div className="flex justify-between items-center mb-2 px-1">
-                <span className="text-[9px] font-black text-gray-400 tracking-wider uppercase">加權優劣勢評估</span>
-                <div className="flex gap-2">
-                  <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-100">Long: {currentEdges.long}</span>
-                  <span className="badge bg-rose-50 text-rose-700 border border-rose-100">Short: {currentEdges.short}</span>
-                </div>
-              </div>
-              <button onClick={() => handleSave('watchlist')} className="w-full bg-slate-950 hover:bg-slate-900 text-white rounded-2xl py-3.5 font-bold text-sm shadow-md btn-press">
-                {editTrade ? '儲存修改' : '儲存至我的觀察名單'}
-              </button>
-            </div>
-          </div>
-          <Modal isOpen={modal.isOpen} onClose={() => setModal({ isOpen: false })} title="提示" actions={<button onClick={() => setModal({ isOpen: false })} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs">好</button>}>{modal.message}</Modal>
-        </div>
+        return React.createElement('div', {
+          key: idx,
+          className: "bg-white rounded-3xl p-4 card-shadow-sm border border-gray-100 space-y-3"
+        },
+          React.createElement('h3', { className: "font-extrabold text-xs text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-1.5" },
+            React.createElement('span', { className: "w-1.5 h-1.5 rounded-full " + categoryColors[idx] }),
+            cat.category
+          ),
+          React.createElement('div', { className: "space-y-3.5" }, catItems)
+        );
+      });
+
+      return React.createElement('div', { className: "flex flex-col min-h-screen bg-gray-50" },
+        React.createElement('header', { className: "flex items-center px-3 py-2.5 border-b bg-white sticky top-0 z-20" }, headerChildren),
+        React.createElement('main', { className: "flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-44" },
+          // 基本数据卡片
+          React.createElement('div', { className: "bg-white p-4 rounded-3xl border border-gray-100 card-shadow-sm space-y-3" },
+            React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+              React.createElement('div', null,
+                React.createElement('label', { className: "text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block" }, "股票代號"),
+                React.createElement('input', {
+                  type: "text",
+                  value: ticker,
+                  onChange: function(e) { setTicker(e.target.value.toUpperCase()); },
+                  className: "w-full p-3 border rounded-xl text-lg font-black tracking-tight uppercase",
+                  placeholder: "AAPL"
+                })
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { className: "text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block" }, "計畫日期"),
+                React.createElement('input', {
+                  type: "date",
+                  value: buyDate,
+                  onChange: function(e) { setBuyDate(e.target.value); },
+                  className: "w-full p-3 border rounded-xl text-xs font-bold text-gray-600"
+                })
+              )
+            ),
+            React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+              React.createElement('div', null,
+                React.createElement('label', { className: "text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block" }, "計畫買入價"),
+                React.createElement('input', {
+                  type: "number",
+                  step: "0.01",
+                  value: targetBuyPrice,
+                  onChange: function(e) { setTargetBuyPrice(e.target.value); },
+                  className: "w-full p-3 border rounded-xl text-sm font-extrabold text-indigo-600",
+                  placeholder: "0.00"
+                })
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { className: "text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block" }, "採用策略"),
+                React.createElement('select', {
+                  value: strategy,
+                  onChange: function(e) { setStrategy(e.target.value); },
+                  className: "w-full p-3 border rounded-xl bg-white text-xs font-bold text-gray-600"
+                }, STRATEGY_OPTIONS.map(function(s) { return React.createElement('option', { key: s, value: s }, s); }))
+              )
+            ),
+            // 折叠面板
+            React.createElement('div', { className: "border rounded-2xl overflow-hidden bg-slate-50/50" },
+              React.createElement('button', {
+                onClick: function() { setAccordionOpen(!accordionOpen); },
+                className: "w-full flex items-center justify-between p-3 font-extrabold text-xs text-gray-700"
+              },
+                React.createElement('span', { className: "flex items-center gap-1.5" },
+                  '💰 資金控管與風報比試算 ',
+                  isUSStock && React.createElement('span', { className: "text-indigo-600 font-bold ml-1 text-[10px]" }, '≈ 美元 $' + effectiveCapital.toFixed(0))
+                ),
+                accordionOpen ? React.createElement(Icons.ChevronUp, { size: 14 }) : React.createElement(Icons.ChevronDown, { size: 14 })
+              ),
+              accordionOpen && React.createElement('div', { className: "px-3 pb-3 space-y-3 border-t border-slate-100 pt-3 bg-white animate-fade-in-up" },
+                React.createElement('div', null,
+                  React.createElement('label', { className: "text-[10px] font-bold text-gray-400 uppercase block mb-1" }, "總投資金額 (HKD)"),
+                  React.createElement('input', {
+                    type: "number",
+                    value: totalCapital,
+                    onChange: function(e) { setTotalCapital(e.target.value); },
+                    className: "w-full p-2.5 border rounded-xl text-xs font-bold"
+                  })
+                ),
+                React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+                  React.createElement('div', null,
+                    React.createElement('label', { className: "text-[10px] font-bold text-gray-400 uppercase block mb-1" }, "設定止損價"),
+                    React.createElement('input', {
+                      type: "number",
+                      step: "0.01",
+                      value: stopLossPrice,
+                      onChange: function(e) { setStopLossPrice(e.target.value); },
+                      className: "w-full p-2.5 border rounded-xl text-xs font-bold text-rose-500",
+                      placeholder: "0.00"
+                    })
+                  ),
+                  React.createElement('div', null,
+                    React.createElement('label', { className: "text-[10px] font-bold text-gray-400 uppercase block mb-1" }, "目標止盈價"),
+                    React.createElement('input', {
+                      type: "number",
+                      step: "0.01",
+                      value: targetPrice,
+                      onChange: function(e) { setTargetPrice(e.target.value); },
+                      className: "w-full p-2.5 border rounded-xl text-xs font-bold text-emerald-500",
+                      placeholder: "0.00"
+                    })
+                  )
+                ),
+                React.createElement('div', { className: "bg-slate-50 rounded-xl p-2.5 flex justify-between items-center text-xs" },
+                  React.createElement('div', { className: "text-gray-500 font-medium" },
+                    '單筆最大風險 ',
+                    React.createElement('strong', { className: "text-rose-500" }, riskPercent + '%'),
+                    ' | 預估利潤 ',
+                    React.createElement('strong', { className: "text-emerald-500" }, rewardPercent + '%')
+                  ),
+                  React.createElement('div', { className: "font-extrabold text-gray-700" },
+                    'R/R 比: ',
+                    React.createElement('strong', { className: "text-indigo-600 text-sm" }, rrRatio)
+                  )
+                ),
+                maxShares !== null && React.createElement('div', { className: "p-2.5 bg-indigo-600 text-white rounded-xl text-[11px] font-bold leading-normal text-center shadow-md shadow-indigo-100" },
+                  '依風控 0.5% 計算：建議買入 ',
+                  React.createElement('strong', { className: "text-sm underline mx-1" }, maxShares),
+                  ' 股 (約使用資金 $' + maxAmount.toFixed(2) + ')'
+                )
+              )
+            )
+          ),
+          // 核對清單
+          React.createElement('div', { className: "space-y-4" }, checklistCards)
+        ),
+        // 底部控制列
+        React.createElement('div', { className: "fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,16px))] shadow-[0_-8px_24px_rgba(0,0,0,0.04)] z-20" },
+          React.createElement('div', { className: "app-container relative" },
+            React.createElement('div', { className: "flex justify-between items-center mb-2 px-1" },
+              React.createElement('span', { className: "text-[9px] font-black text-gray-400 tracking-wider uppercase" }, "加權優劣勢評估"),
+              React.createElement('div', { className: "flex gap-2" },
+                React.createElement('span', { className: "badge bg-emerald-50 text-emerald-700 border border-emerald-100" }, 'Long: ' + currentEdges.long),
+                React.createElement('span', { className: "badge bg-rose-50 text-rose-700 border border-rose-100" }, 'Short: ' + currentEdges.short)
+              )
+            ),
+            React.createElement('button', {
+              onClick: function() { handleSave('watchlist'); },
+              className: "w-full bg-slate-950 hover:bg-slate-900 text-white rounded-2xl py-3.5 font-bold text-sm shadow-md btn-press"
+            }, editTrade ? '儲存修改' : '儲存至我的觀察名單')
+          )
+        ),
+        React.createElement(Modal, {
+          isOpen: modalMsg.isOpen,
+          onClose: function() { setModalMsg({ isOpen: false, message: '' }); },
+          title: "提示",
+          actions: React.createElement('button', {
+            onClick: function() { setModalMsg({ isOpen: false, message: '' }); },
+            className: "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs"
+          }, "好")
+        }, modalMsg.message)
       );
     }
 
-    function ReviewTradeForm({ trade, onSave, onCancel }) {
+    // ---- 交易後檢討 ----
+    function ReviewTradeForm(props) {
+      const trade = props.trade;
+      const onSave = props.onSave;
+      const onCancel = props.onCancel;
+      
       const [actualBuyPrice, setActualBuyPrice] = useState(trade.actualBuyPrice || trade.targetBuyPrice || '');
       const [sellDate, setSellDate] = useState(new Date().toISOString().split('T')[0]);
       const [sellPrice, setSellPrice] = useState('');
       const [reviewNotes, setReviewNotes] = useState('');
-      const [modal, setModal] = useState({ isOpen: false, message: '' });
+      const [modalMsg, setModalMsg] = useState({ isOpen: false, message: '' });
 
-      const handleSave = () => {
+      const handleSave = function() {
         const bp = parseFloat(actualBuyPrice);
         const sp = parseFloat(sellPrice);
         if (isNaN(bp) || bp <= 0) {
-          setModal({ isOpen: true, message: '請輸入有效的實際買入價格。' });
+          setModalMsg({ isOpen: true, message: '請輸入有效的實際買入價格。' });
           return;
         }
         if (isNaN(sp) || sp <= 0) {
-          setModal({ isOpen: true, message: '請輸入有效的實際賣出價格。' });
+          setModalMsg({ isOpen: true, message: '請輸入有效的實際賣出價格。' });
           return;
         }
-
         const holdingDays = calcHoldingDays(trade.buyDate, sellDate);
         const pnlPercent = calcPnL(bp, sp);
-
-        onSave({ actualBuyPrice: bp, sellDate, sellPrice: sp, reviewNotes, holdingDays, pnlPercent });
+        onSave({
+          actualBuyPrice: bp,
+          sellDate: sellDate,
+          sellPrice: sp,
+          reviewNotes: reviewNotes,
+          holdingDays: holdingDays,
+          pnlPercent: pnlPercent
+        });
       };
 
-      return (
-        <div className="flex flex-col min-h-screen bg-white">
-          <header className="flex items-center px-3 py-2.5 border-b bg-white sticky top-0 z-10">
-            <button onClick={onCancel} className="p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"><Icons.ArrowLeft size={22} /></button>
-            <h1 className="text-base font-extrabold flex-1 text-center pr-8 text-gray-800">完成交易與檢討 ({trade.ticker})</h1>
-          </header>
-          
-          <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-40">
-            <div className="bg-slate-50 p-4 rounded-3xl border border-gray-100 flex justify-between items-center animate-fade-in-up">
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">交易計畫</p>
-                <p className="font-extrabold text-xl text-gray-800 mt-0.5">{trade.ticker}</p>
-                <p className="text-xs text-gray-500 mt-1">策略: {trade.strategy}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">計畫買入日</p>
-                <p className="font-extrabold text-sm text-gray-700 mt-0.5">{formatDateShort(trade.buyDate)}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-2">
-              <div>
-                <label className="text-xs font-bold text-gray-600 mb-1.5 block">實際成交買入價 (可根據手續費或實際價格微調)</label>
-                <input type="number" step="0.01" value={actualBuyPrice} onChange={e => setActualBuyPrice(e.target.value)} className="w-full p-3 border rounded-xl text-sm font-bold bg-slate-50" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-gray-600 mb-1.5 block">賣出日期</label>
-                  <input type="date" value={sellDate} onChange={e => setSellDate(e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold text-gray-600" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-600 mb-1.5 block">賣出成交價</label>
-                  <input type="number" step="0.01" value={sellPrice} onChange={e => setSellPrice(e.target.value)} className="w-full p-3 border-2 border-indigo-200 rounded-xl text-sm font-extrabold text-indigo-700 focus:border-indigo-500 bg-indigo-50/20" placeholder="0.00" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-600 mb-1.5 block">交易檢討及學習筆記 (Lessons Learned)</label>
-                <textarea rows="5" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} className="w-full p-3 border rounded-xl text-xs font-medium leading-relaxed" placeholder="例如：我的買入判斷與紀律遵守如何？停利是否果斷？有哪些需要改進的地方？" />
-              </div>
-            </div>
-          </main>
-          
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,16px))] shadow-[0_-8px_24px_rgba(0,0,0,0.04)] z-20">
-            <div className="app-container relative">
-              <button onClick={handleSave} className="w-full bg-gradient-to-r from-purple-700 to-indigo-600 text-white rounded-2xl py-3.5 font-bold text-sm shadow-md btn-press">
-                確認完成檢討報告
-              </button>
-            </div>
-          </div>
-          <Modal isOpen={modal.isOpen} onClose={() => setModal({ isOpen: false })} title="提示" actions={<button onClick={() => setModal({ isOpen: false })} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs">好</button>}>{modal.message}</Modal>
-        </div>
+      return React.createElement('div', { className: "flex flex-col min-h-screen bg-white" },
+        React.createElement('header', { className: "flex items-center px-3 py-2.5 border-b bg-white sticky top-0 z-10" },
+          React.createElement('button', {
+            onClick: onCancel,
+            className: "p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"
+          }, React.createElement(Icons.ArrowLeft, { size: 22 })),
+          React.createElement('h1', { className: "text-base font-extrabold flex-1 text-center pr-8 text-gray-800" }, '完成交易與檢討 (' + trade.ticker + ')')
+        ),
+        React.createElement('main', { className: "flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-40" },
+          React.createElement('div', { className: "bg-slate-50 p-4 rounded-3xl border border-gray-100 flex justify-between items-center animate-fade-in-up" },
+            React.createElement('div', null,
+              React.createElement('p', { className: "text-[10px] font-black text-gray-400 uppercase tracking-wide" }, "交易計畫"),
+              React.createElement('p', { className: "font-extrabold text-xl text-gray-800 mt-0.5" }, trade.ticker),
+              React.createElement('p', { className: "text-xs text-gray-500 mt-1" }, '策略: ' + trade.strategy)
+            ),
+            React.createElement('div', { className: "text-right" },
+              React.createElement('p', { className: "text-[10px] font-black text-gray-400 uppercase tracking-wide" }, "計畫買入日"),
+              React.createElement('p', { className: "font-extrabold text-sm text-gray-700 mt-0.5" }, formatDateShort(trade.buyDate))
+            )
+          ),
+          React.createElement('div', { className: "space-y-4 pt-2" },
+            React.createElement('div', null,
+              React.createElement('label', { className: "text-xs font-bold text-gray-600 mb-1.5 block" }, "實際成交買入價 (可根據手續費或實際價格微調)"),
+              React.createElement('input', {
+                type: "number",
+                step: "0.01",
+                value: actualBuyPrice,
+                onChange: function(e) { setActualBuyPrice(e.target.value); },
+                className: "w-full p-3 border rounded-xl text-sm font-bold bg-slate-50"
+              })
+            ),
+            React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+              React.createElement('div', null,
+                React.createElement('label', { className: "text-xs font-bold text-gray-600 mb-1.5 block" }, "賣出日期"),
+                React.createElement('input', {
+                  type: "date",
+                  value: sellDate,
+                  onChange: function(e) { setSellDate(e.target.value); },
+                  className: "w-full p-3 border rounded-xl text-xs font-bold text-gray-600"
+                })
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { className: "text-xs font-bold text-gray-600 mb-1.5 block" }, "賣出成交價"),
+                React.createElement('input', {
+                  type: "number",
+                  step: "0.01",
+                  value: sellPrice,
+                  onChange: function(e) { setSellPrice(e.target.value); },
+                  className: "w-full p-3 border-2 border-indigo-200 rounded-xl text-sm font-extrabold text-indigo-700 focus:border-indigo-500 bg-indigo-50/20",
+                  placeholder: "0.00"
+                })
+              )
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { className: "text-xs font-bold text-gray-600 mb-1.5 block" }, "交易檢討及學習筆記 (Lessons Learned)"),
+              React.createElement('textarea', {
+                rows: "5",
+                value: reviewNotes,
+                onChange: function(e) { setReviewNotes(e.target.value); },
+                className: "w-full p-3 border rounded-xl text-xs font-medium leading-relaxed",
+                placeholder: "例如：我的買入判斷與紀律遵守如何？停利是否果斷？有哪些需要改進的地方？"
+              })
+            )
+          )
+        ),
+        React.createElement('div', { className: "fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,16px))] shadow-[0_-8px_24px_rgba(0,0,0,0.04)] z-20" },
+          React.createElement('div', { className: "app-container relative" },
+            React.createElement('button', {
+              onClick: handleSave,
+              className: "w-full bg-gradient-to-r from-purple-700 to-indigo-600 text-white rounded-2xl py-3.5 font-bold text-sm shadow-md btn-press"
+            }, "確認完成檢討報告")
+          )
+        ),
+        React.createElement(Modal, {
+          isOpen: modalMsg.isOpen,
+          onClose: function() { setModalMsg({ isOpen: false, message: '' }); },
+          title: "提示",
+          actions: React.createElement('button', {
+            onClick: function() { setModalMsg({ isOpen: false, message: '' }); },
+            className: "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs"
+          }, "好")
+        }, modalMsg.message)
       );
     }
 
-    function ReportView({ trade, onBack, onDelete }) {
+    // ---- 檢討報告 ----
+    function ReportView(props) {
+      const trade = props.trade;
+      const onBack = props.onBack;
+      const onDelete = props.onDelete;
       const isProfit = trade.pnlPercent >= 0;
-      return (
-        <div className="flex flex-col min-h-screen bg-slate-50">
-          <header className="flex items-center justify-between px-3 py-2.5 border-b bg-white sticky top-0 z-10">
-            <button onClick={onBack} className="p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"><Icons.ArrowLeft size={22} /></button>
-            <h1 className="text-base font-extrabold text-gray-800">交易檢討報告 ({trade.ticker})</h1>
-            <button onClick={onDelete} className="p-1.5 -mr-1.5 text-gray-300 hover:text-rose-500 transition-colors"><Icons.Trash size={16} /></button>
-          </header>
-          
-          <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-20">
-            {/* 總結卡片 */}
-            <div className={`p-5 rounded-3xl text-white shadow-xl animate-fade-in-up ${isProfit ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-rose-500 to-red-600'}`}>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-80">交易結果</span>
-                  <h2 className="text-3xl font-black tracking-tight">{trade.ticker}</h2>
-                  <span className="badge bg-white/20 text-white mt-1 border border-white/10 text-[9px] font-bold">{trade.strategy}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-80">回報比率</span>
-                  <p className="text-3xl font-black tracking-tight mt-0.5">{isProfit ? '+' : ''}{trade.pnlPercent?.toFixed(2)}%</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 border-t border-white/20 pt-3.5 mt-2 text-center text-xs">
-                <div>
-                  <p className="opacity-70 text-[9px] font-bold uppercase mb-0.5">平均買價</p>
-                  <p className="font-extrabold text-base">${trade.actualBuyPrice?.toFixed(2)}</p>
-                </div>
-                <div className="border-l border-r border-white/10">
-                  <p className="opacity-70 text-[9px] font-bold uppercase mb-0.5">賣出價格</p>
-                  <p className="font-extrabold text-base">${trade.sellPrice?.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="opacity-70 text-[9px] font-bold uppercase mb-0.5">持倉天數</p>
-                  <p className="font-extrabold text-base">{trade.holdingDays} 天</p>
-                </div>
-              </div>
-            </div>
 
-            {/* 檢討筆記 */}
-            <div className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 space-y-2 animate-fade-in-up">
-              <h3 className="font-extrabold text-[11px] text-gray-400 uppercase tracking-wider">💡 學習筆記 (Lessons Learned)</h3>
-              <p className="text-xs text-gray-700 leading-relaxed font-semibold whitespace-pre-wrap bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                {trade.reviewNotes || '無任何心得筆記。'}
-              </p>
-            </div>
+      const answerRows = Object.entries(trade.answers).map(function(entry) {
+        const key = entry[0];
+        const option = entry[1];
+        if (!option) return null;
+        let label = key;
+        METS_CHECKLIST.forEach(function(cat) {
+          cat.items.forEach(function(i) {
+            if (i.id === key) label = i.label;
+          });
+        });
+        const edge = option.edge;
+        const edgeStyle = edge === 'long' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : edge === 'short' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-gray-50 text-gray-600 border-gray-100';
+        return React.createElement('div', { key: key, className: "data-row" },
+          React.createElement('span', { className: "data-label text-gray-500 font-semibold" }, label),
+          React.createElement('span', { className: "badge border text-[10px] py-0.5 " + edgeStyle }, option.text)
+        );
+      });
 
-            {/* M.E.T.S 指引回顧 */}
-            <div className="bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 space-y-3 animate-fade-in-up">
-              <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                <h3 className="font-extrabold text-[11px] text-gray-400 uppercase tracking-wider">📊 當時 M.E.T.S. 評分依據</h3>
-                <div className="flex gap-1.5">
-                  <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-100">L: {trade.edges?.long}</span>
-                  <span className="badge bg-rose-50 text-rose-700 border border-rose-100">S: {trade.edges?.short}</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                {Object.entries(trade.answers).map(([key, option]) => {
-                  if (!option) return null;
-                  let label = key;
-                  METS_CHECKLIST.forEach(cat => cat.items.forEach(i => { if (i.id === key) label = i.label; }));
-                  const edge = option.edge;
-                  const edgeStyle = edge === 'long' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : edge === 'short' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-gray-50 text-gray-600 border-gray-100';
-                  return (
-                    <div key={key} className="data-row">
-                      <span className="data-label text-gray-500 font-semibold">{label}</span>
-                      <span className={`badge border text-[10px] py-0.5 ${edgeStyle}`}>{option.text}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </main>
-        </div>
+      return React.createElement('div', { className: "flex flex-col min-h-screen bg-slate-50" },
+        React.createElement('header', { className: "flex items-center justify-between px-3 py-2.5 border-b bg-white sticky top-0 z-10" },
+          React.createElement('button', {
+            onClick: onBack,
+            className: "p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"
+          }, React.createElement(Icons.ArrowLeft, { size: 22 })),
+          React.createElement('h1', { className: "text-base font-extrabold text-gray-800" }, '交易檢討報告 (' + trade.ticker + ')'),
+          React.createElement('button', {
+            onClick: onDelete,
+            className: "p-1.5 -mr-1.5 text-gray-300 hover:text-rose-500 transition-colors"
+          }, React.createElement(Icons.Trash, { size: 16 }))
+        ),
+        React.createElement('main', { className: "flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-20" },
+          React.createElement('div', { className: "p-5 rounded-3xl text-white shadow-xl animate-fade-in-up " + (isProfit ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-rose-500 to-red-600') },
+            React.createElement('div', { className: "flex justify-between items-start mb-4" },
+              React.createElement('div', null,
+                React.createElement('span', { className: "text-[10px] font-black uppercase tracking-widest opacity-80" }, "交易結果"),
+                React.createElement('h2', { className: "text-3xl font-black tracking-tight" }, trade.ticker),
+                React.createElement('span', { className: "badge bg-white/20 text-white mt-1 border border-white/10 text-[9px] font-bold" }, trade.strategy)
+              ),
+              React.createElement('div', { className: "text-right" },
+                React.createElement('span', { className: "text-[10px] font-black uppercase tracking-widest opacity-80" }, "回報比率"),
+                React.createElement('p', { className: "text-3xl font-black tracking-tight mt-0.5" }, (isProfit ? '+' : '') + (trade.pnlPercent ? trade.pnlPercent.toFixed(2) : '0.00') + '%')
+              )
+            ),
+            React.createElement('div', { className: "grid grid-cols-3 gap-2 border-t border-white/20 pt-3.5 mt-2 text-center text-xs" },
+              React.createElement('div', null,
+                React.createElement('p', { className: "opacity-70 text-[9px] font-bold uppercase mb-0.5" }, "平均買價"),
+                React.createElement('p', { className: "font-extrabold text-base" }, '$' + (trade.actualBuyPrice ? trade.actualBuyPrice.toFixed(2) : '--'))
+              ),
+              React.createElement('div', { className: "border-l border-r border-white/10" },
+                React.createElement('p', { className: "opacity-70 text-[9px] font-bold uppercase mb-0.5" }, "賣出價格"),
+                React.createElement('p', { className: "font-extrabold text-base" }, '$' + (trade.sellPrice ? trade.sellPrice.toFixed(2) : '--'))
+              ),
+              React.createElement('div', null,
+                React.createElement('p', { className: "opacity-70 text-[9px] font-bold uppercase mb-0.5" }, "持倉天數"),
+                React.createElement('p', { className: "font-extrabold text-base" }, (trade.holdingDays || 0) + ' 天')
+              )
+            )
+          ),
+          React.createElement('div', { className: "bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 space-y-2 animate-fade-in-up" },
+            React.createElement('h3', { className: "font-extrabold text-[11px] text-gray-400 uppercase tracking-wider" }, "💡 學習筆記 (Lessons Learned)"),
+            React.createElement('p', { className: "text-xs text-gray-700 leading-relaxed font-semibold whitespace-pre-wrap bg-gray-50/50 p-3 rounded-xl border border-gray-100" }, trade.reviewNotes || '無任何心得筆記。')
+          ),
+          React.createElement('div', { className: "bg-white rounded-2xl p-4 card-shadow-sm border border-gray-100 space-y-3 animate-fade-in-up" },
+            React.createElement('div', { className: "flex justify-between items-center border-b border-gray-100 pb-2" },
+              React.createElement('h3', { className: "font-extrabold text-[11px] text-gray-400 uppercase tracking-wider" }, "📊 當時 M.E.T.S. 評分依據"),
+              React.createElement('div', { className: "flex gap-1.5" },
+                React.createElement('span', { className: "badge bg-emerald-50 text-emerald-700 border border-emerald-100" }, 'L: ' + (trade.edges ? trade.edges.long : 0)),
+                React.createElement('span', { className: "badge bg-rose-50 text-rose-700 border border-rose-100" }, 'S: ' + (trade.edges ? trade.edges.short : 0))
+              )
+            ),
+            React.createElement('div', { className: "space-y-1" }, answerRows)
+          )
+        )
       );
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    root.render(React.createElement(App));
   </script>
 </body>
 </html>
