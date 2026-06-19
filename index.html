@@ -154,9 +154,17 @@
       const goTo = (v, t = null) => { setCurrentTrade(t); setView(v); window.scrollTo(0, 0); };
       
       const saveNewTrade = (data, status = 'watchlist') => {
-        const nt = { ...data, id: Date.now().toString(), status, createdAt: new Date().toISOString() };
-        setTrades(prev => [nt, ...prev]); goTo('dashboard');
+        if (currentTrade && currentTrade.status === 'watchlist') {
+          // 修改現有計劃
+          setTrades(prev => prev.map(t => t.id === currentTrade.id ? { ...t, ...data } : t));
+        } else {
+          // 新增全新計劃
+          const nt = { ...data, id: Date.now().toString(), status, createdAt: new Date().toISOString() };
+          setTrades(prev => [nt, ...prev]);
+        }
+        goTo('dashboard');
       };
+      
       const buyFromWatchlist = (trade, actualBuyPrice) => {
         setTrades(prev => prev.map(t => t.id === trade.id ? { ...t, status: 'active', buyDate: new Date().toISOString().split('T')[0], actualBuyPrice: actualBuyPrice || t.targetBuyPrice } : t));
       };
@@ -165,10 +173,21 @@
       };
       const deleteTrade = (tid) => { setTrades(prev => prev.filter(t => t.id !== tid)); };
 
+      // 智能分流導向
+      const handleSelectTrade = (trade) => {
+        if (trade.status === 'watchlist') {
+          goTo('new_trade', trade); // 觀察中計劃 ➜ 前往修改交易計畫
+        } else if (trade.status === 'active') {
+          goTo('review_trade', trade); // 持有中交易 ➜ 前往檢討與賣出
+        } else if (trade.status === 'completed') {
+          goTo('report', trade); // 已完成交易 ➜ 前往精美報告
+        }
+      };
+
       return (
         <div className="app-container min-h-screen bg-gray-50 shadow-2xl relative">
-          {view === 'dashboard' && <Dashboard trades={trades} onNew={() => goTo('new_trade')} onSelect={t => goTo(t.status === 'completed' ? 'report' : 'review_trade', t)} onDelete={deleteTrade} onBuy={buyFromWatchlist} />}
-          {view === 'new_trade' && <NewTradeForm onSave={saveNewTrade} onCancel={() => goTo('dashboard')} />}
+          {view === 'dashboard' && <Dashboard trades={trades} onNew={() => goTo('new_trade')} onSelect={handleSelectTrade} onDelete={deleteTrade} onBuy={buyFromWatchlist} />}
+          {view === 'new_trade' && <NewTradeForm onSave={saveNewTrade} onCancel={() => goTo('dashboard')} editTrade={currentTrade} />}
           {view === 'review_trade' && currentTrade && <ReviewTradeForm trade={currentTrade} onSave={d => completeTrade(currentTrade.id, d)} onCancel={() => goTo('dashboard')} />}
           {view === 'report' && currentTrade && <ReportView trade={currentTrade} onBack={() => goTo('dashboard')} onDelete={() => { deleteTrade(currentTrade.id); goTo('dashboard'); }} />}
         </div>
@@ -280,16 +299,16 @@
       );
     }
 
-    function NewTradeForm({ onSave, onCancel }) {
-      const [ticker, setTicker] = useState('');
-      const [buyDate, setBuyDate] = useState(new Date().toISOString().split('T')[0]);
-      const [targetBuyPrice, setTargetBuyPrice] = useState('');
-      const [strategy, setStrategy] = useState('LVP');
-      const [answers, setAnswers] = useState({});
-      const [totalCapital, setTotalCapital] = useState('75000');
-      const [stopLossPrice, setStopLossPrice] = useState('');
-      const [targetPrice, setTargetPrice] = useState('');
-      const [priceInputs, setPriceInputs] = useState({
+    function NewTradeForm({ onSave, onCancel, editTrade }) {
+      const [ticker, setTicker] = useState(editTrade ? editTrade.ticker : '');
+      const [buyDate, setBuyDate] = useState(editTrade ? editTrade.buyDate : new Date().toISOString().split('T')[0]);
+      const [targetBuyPrice, setTargetBuyPrice] = useState(editTrade ? editTrade.targetBuyPrice : '');
+      const [strategy, setStrategy] = useState(editTrade ? editTrade.strategy : 'LVP');
+      const [answers, setAnswers] = useState(editTrade ? editTrade.answers : {});
+      const [totalCapital, setTotalCapital] = useState(editTrade ? editTrade.totalCapital.toString() : '75000');
+      const [stopLossPrice, setStopLossPrice] = useState(editTrade ? editTrade.stopLossPrice || '' : '');
+      const [targetPrice, setTargetPrice] = useState(editTrade ? editTrade.targetPrice || '' : '');
+      const [priceInputs, setPriceInputs] = useState(editTrade ? editTrade.priceInputs : {
         s_daily_support: '', s_daily_resist: '', s_weekly_support: '', s_weekly_resist: '',
         s_trendline: '', s_prev_resist_support: '', s_ma_support: { ma10: '', ma20: '', ma50: '', ma200: '' }
       });
@@ -328,6 +347,7 @@
       }, [priceInputs, buyP]);
 
       const currentEdges = useMemo(() => calculateEdges(answers), [answers]);
+      
       const handleOptionSelect = (itemId, option) => {
         if (answers[itemId]?.text === option.text) {
           const newAns = { ...answers }; delete newAns[itemId]; setAnswers(newAns);
@@ -335,6 +355,7 @@
           setAnswers(prev => ({ ...prev, [itemId]: option }));
         }
       };
+      
       const handlePriceChange = (itemId, value, maKey = null) => {
         setPriceInputs(prev => {
           const ns = { ...prev };
@@ -373,7 +394,9 @@
         <div className="flex flex-col min-h-screen bg-gray-50">
           <header className="flex items-center px-3 py-2.5 border-b bg-white sticky top-0 z-20">
             <button onClick={onCancel} className="p-1.5 -ml-1.5 text-gray-500 rounded-full hover:bg-gray-100"><Icons.ArrowLeft size={22} /></button>
-            <h1 className="text-base font-extrabold flex-1 text-center pr-8 tracking-tight text-gray-800">建立 M.E.T.S 交易計畫</h1>
+            <h1 className="text-base font-extrabold flex-1 text-center pr-8 tracking-tight text-gray-800">
+              {editTrade ? `修改 ${editTrade.ticker} 交易計畫` : '建立 M.E.T.S 交易計畫'}
+            </h1>
           </header>
           
           <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-44">
@@ -509,7 +532,7 @@
                 </div>
               </div>
               <button onClick={() => handleSave('watchlist')} className="w-full bg-slate-950 hover:bg-slate-900 text-white rounded-2xl py-3.5 font-bold text-sm shadow-md btn-press">
-                儲存至我的觀察名單
+                {editTrade ? '儲存修改' : '儲存至我的觀察名單'}
               </button>
             </div>
           </div>
